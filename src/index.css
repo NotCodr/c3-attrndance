@@ -68,9 +68,10 @@
   body {
     @apply text-foreground;
     background:
-      radial-gradient(ellipse 80% 60% at 15% 0%, hsl(257 80% 88% / 0.6), transparent 60%),
-      radial-gradient(ellipse 70% 50% at 100% 30%, hsl(210 85% 90% / 0.5), transparent 60%),
-      radial-gradient(ellipse 60% 40% at 50% 100%, hsl(340 80% 92% / 0.4), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 10% 0%, hsl(195 95% 85% / 0.55), transparent 60%),
+      radial-gradient(ellipse 70% 50% at 95% 10%, hsl(257 85% 82% / 0.55), transparent 60%),
+      radial-gradient(ellipse 60% 45% at 90% 95%, hsl(45 95% 85% / 0.45), transparent 60%),
+      radial-gradient(ellipse 60% 45% at 5% 90%, hsl(340 90% 88% / 0.45), transparent 60%),
       hsl(var(--background));
     background-attachment: fixed;
     font-family: var(--font-sans);
