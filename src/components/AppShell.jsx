@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { listMyClubs, getCurrentUser } from '@/lib/clubs';
-import { Calendar, Users, Settings, FileText, LogOut, ChevronDown, Plus } from 'lucide-react';
+import { Calendar, Users, Settings, FileText, LogOut, ChevronDown, Plus, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
 
@@ -112,6 +112,7 @@ export default function AppShell() {
             <nav className="space-y-1">
               <NavLink to={`/c/${clubSlug}`} icon={Calendar} active={location.pathname === `/c/${clubSlug}`}>overview</NavLink>
               <NavLink to={`/c/${clubSlug}/events`} icon={Calendar} active={location.pathname.endsWith('/events')}>events</NavLink>
+              <NavLink to={`/c/${clubSlug}/analytics`} icon={BarChart3} active={location.pathname.endsWith('/analytics')}>analytics</NavLink>
               <NavLink to={`/c/${clubSlug}/acquittal-packs`} icon={FileText} active={location.pathname.endsWith('/acquittal-packs')}>acquittal packs</NavLink>
               <NavLink to={`/c/${clubSlug}/committee`} icon={Users} active={location.pathname.endsWith('/committee')}>committee</NavLink>
               <NavLink to={`/c/${clubSlug}/settings`} icon={Settings} active={location.pathname.endsWith('/settings')}>settings</NavLink>

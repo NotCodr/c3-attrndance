@@ -19,6 +19,7 @@ import EventAcquittal from '@/pages/EventAcquittal';
 import Committee from '@/pages/Committee';
 import ClubSettings from '@/pages/ClubSettings';
 import AcquittalPacks from '@/pages/AcquittalPacks';
+import Analytics from '@/pages/Analytics';
 import Account from '@/pages/Account';
 import PublicRSVP from '@/pages/PublicRSVP';
 import PublicClub from '@/pages/PublicClub';
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         <Route path="/c/:clubSlug/committee" element={<Committee />} />
         <Route path="/c/:clubSlug/settings" element={<ClubSettings />} />
         <Route path="/c/:clubSlug/acquittal-packs" element={<AcquittalPacks />} />
+        <Route path="/c/:clubSlug/analytics" element={<Analytics />} />
       </Route>
 
       <Route path="*" element={<PageNotFound />} />
