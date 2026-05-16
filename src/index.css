@@ -1,87 +1,101 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Connect3 v2 — dark-first, minimal, no decoration */
 @layer base {
   :root {
-    /* Dark mode is default in v2. We keep `:root` as dark and `.light` for inversion. */
-    --background: 240 11% 5%;          /* #0A0A0F */
+    /* Connect3 v2 — dark by default */
+    --background: 240 14% 5%;          /* #0A0A0F */
     --foreground: 0 0% 100%;
-    --card: 240 12% 9%;                /* #13131A */
+    --card: 240 13% 9%;                /* #13131A */
     --card-foreground: 0 0% 100%;
-    --popover: 240 12% 9%;
+    --popover: 240 13% 9%;
     --popover-foreground: 0 0% 100%;
-    --primary: 251 67% 80%;            /* #B5A8F0 lavender */
-    --primary-foreground: 240 30% 9%;
-    --secondary: 240 8% 14%;
+    --primary: 251 71% 80%;            /* #B5A8F0 lavender */
+    --primary-foreground: 240 14% 5%;
+    --secondary: 240 10% 14%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 240 8% 14%;
-    --muted-foreground: 240 5% 58%;    /* #8A8A95 */
-    --accent: 252 62% 71%;             /* #8E7FE0 deeper purple */
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 70% 60%;
+    --muted: 240 10% 14%;
+    --muted-foreground: 240 6% 56%;    /* #8A8A95 */
+    --accent: 251 71% 80%;
+    --accent-foreground: 240 14% 5%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 240 7% 28%;              /* #44444E */
-    --input: 240 8% 16%;
-    --ring: 251 67% 80%;
+    --border: 240 6% 28%;              /* #44444E */
+    --input: 240 10% 14%;
+    --ring: 251 71% 80%;
+    --radius: 0.5rem;
 
-    --chart-1: 251 67% 80%;
-    --chart-2: 252 62% 71%;
-    --chart-3: 200 70% 60%;
-    --chart-4: 30 70% 60%;
-    --chart-5: 145 60% 55%;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    --radius: 0.75rem;
-
-    --font-sans: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
-
-    --sidebar-background: 240 12% 9%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 251 67% 80%;
-    --sidebar-primary-foreground: 240 30% 9%;
-    --sidebar-accent: 240 8% 14%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 240 7% 28%;
-    --sidebar-ring: 251 67% 80%;
+    /* Brand-specific */
+    --connect3-purple: 251 65% 55%;    /* #5847D0 light-mode purple */
+    --connect3-lavender: 251 71% 80%;  /* #B5A8F0 */
+    --connect3-deep: 251 56% 70%;      /* #8E7FE0 */
   }
 
   .light {
     --background: 0 0% 100%;
-    --foreground: 252 35% 13%;
+    --foreground: 249 36% 14%;         /* #1A1530 */
     --card: 0 0% 100%;
-    --card-foreground: 252 35% 13%;
+    --card-foreground: 249 36% 14%;
     --popover: 0 0% 100%;
-    --popover-foreground: 252 35% 13%;
-    --primary: 252 60% 55%;
+    --popover-foreground: 249 36% 14%;
+    --primary: 251 65% 55%;            /* #5847D0 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 10% 96%;
-    --secondary-foreground: 252 35% 13%;
-    --muted: 240 10% 96%;
-    --muted-foreground: 240 5% 45%;
-    --accent: 252 60% 55%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 249 36% 14%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 6% 40%;
+    --accent: 251 65% 55%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 240 10% 88%;
-    --input: 240 10% 88%;
-    --ring: 252 60% 55%;
+    --border: 240 6% 88%;
+    --input: 240 6% 92%;
+    --ring: 251 65% 55%;
   }
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
+  * { @apply border-border; }
+  html { color-scheme: dark; }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
-    text-rendering: optimizeLegibility;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
   h1, h2, h3, h4, h5, h6 { font-weight: 500; letter-spacing: -0.01em; }
-  /* Never bold per design spec — clamp 600/700 to 500 in our headings */
+  input, textarea, select, button { font-family: inherit; }
+}
+
+@layer components {
+  .c3-input {
+    @apply w-full bg-input border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground
+           focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition;
+  }
+  .c3-label {
+    @apply block text-sm text-foreground/90 mb-1.5;
+  }
+  .c3-card {
+    @apply bg-card border border-border rounded-xl;
+  }
+  .c3-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground rounded-lg px-4 py-2.5 text-sm font-medium
+           hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .c3-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 bg-secondary text-secondary-foreground rounded-lg px-4 py-2.5 text-sm font-medium
+           hover:bg-secondary/70 border border-border transition disabled:opacity-50;
+  }
+  .c3-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition;
+  }
+  .c3-badge {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs bg-secondary text-foreground/80 border border-border;
+  }
 }
 
 @layer utilities {
