@@ -2,77 +2,109 @@
   "name": "Event",
   "type": "object",
   "properties": {
-    "title": {
+    "club_id": {
       "type": "string"
     },
-    "club_id": {
+    "club_slug": {
       "type": "string"
     },
     "club_name": {
       "type": "string"
     },
-    "university": {
-      "type": "string",
-      "enum": [
-        "UMelb",
-        "UWA"
-      ]
+    "title": {
+      "type": "string"
     },
     "description": {
       "type": "string"
     },
-    "start_date": {
+    "starts_at": {
       "type": "string",
       "format": "date-time"
     },
-    "end_date": {
+    "ends_at": {
       "type": "string",
       "format": "date-time"
     },
-    "location": {
+    "location_name": {
       "type": "string"
     },
-    "is_online": {
-      "type": "boolean",
-      "default": false
-    },
-    "cover_url": {
+    "location_address": {
       "type": "string"
     },
-    "categories": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "tags": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "price": {
-      "type": "string",
-      "default": "Free"
-    },
-    "rsvp_count": {
-      "type": "number",
-      "default": 0
+    "cover_image_url": {
+      "type": "string"
     },
     "capacity": {
-      "type": "number"
+      "type": "number",
+      "description": "Null = unlimited"
     },
-    "rsvp_url": {
-      "type": "string"
+    "rsvp_required": {
+      "type": "boolean",
+      "default": true
     },
-    "international_friendly": {
+    "is_grant_funded": {
       "type": "boolean",
       "default": false
+    },
+    "grant_category": {
+      "type": "string",
+      "enum": [
+        "Functions",
+        "Camps",
+        "Excursions",
+        "General",
+        ""
+      ]
+    },
+    "grant_amount_cents": {
+      "type": "number"
+    },
+    "ask_dietary": {
+      "type": "boolean",
+      "default": false
+    },
+    "ask_accessibility": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "published",
+        "cancelled",
+        "completed"
+      ],
+      "default": "draft"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancelled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cancellation_reason": {
+      "type": "string"
+    },
+    "public_slug": {
+      "type": "string"
+    },
+    "qr_token": {
+      "type": "string",
+      "description": "Random 32-char token, generated on publish"
+    },
+    "deleted_at": {
+      "type": "string",
+      "format": "date-time"
     }
   },
   "required": [
+    "club_id",
     "title",
-    "start_date",
-    "university"
+    "starts_at",
+    "ends_at",
+    "location_name"
   ]
 }

@@ -5,13 +5,12 @@ module.exports = {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ['var(--font-sans)'],
-  			display: ['var(--font-display)']
+  			sans: ['var(--font-sans)']
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			md: 'calc(var(--radius) - 4px)',
+  			sm: 'calc(var(--radius) - 6px)'
   		},
   		colors: {
   			background: 'hsl(var(--background))',

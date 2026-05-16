@@ -1,0 +1,55 @@
+{
+  "name": "RSVP",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string"
+    },
+    "club_id": {
+      "type": "string"
+    },
+    "rsvp_token": {
+      "type": "string",
+      "description": "Random per-RSVP token for QR"
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "student_number": {
+      "type": "string"
+    },
+    "course": {
+      "type": "string"
+    },
+    "university_name": {
+      "type": "string"
+    },
+    "is_member": {
+      "type": "boolean",
+      "default": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "waitlisted",
+        "cancelled"
+      ],
+      "default": "confirmed"
+    },
+    "dietary_requirements": {
+      "type": "string"
+    },
+    "accessibility_requirements": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_id",
+    "full_name",
+    "email"
+  ]
+}

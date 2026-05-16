@@ -1,0 +1,42 @@
+{
+  "name": "ClubMembership",
+  "type": "object",
+  "properties": {
+    "club_id": {
+      "type": "string"
+    },
+    "club_slug": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Lowercased email of the user"
+    },
+    "user_name": {
+      "type": "string"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "admin",
+        "treasurer",
+        "scanner"
+      ],
+      "default": "scanner"
+    },
+    "invited_by_email": {
+      "type": "string"
+    },
+    "accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Null = pending invite"
+    }
+  },
+  "required": [
+    "club_id",
+    "user_email",
+    "role"
+  ]
+}

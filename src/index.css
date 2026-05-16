@@ -1,111 +1,91 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800;9..144,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Connect3 v2 — dark-first, minimal, no decoration */
 @layer base {
   :root {
-    /* Connect3 brand: deep navy + electric blue */
-    --background: 0 0% 100%;
-    --foreground: 215 60% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 215 60% 12%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 215 60% 12%;
-
-    /* Primary: deep navy */
-    --primary: 215 60% 12%;
-    --primary-foreground: 0 0% 100%;
-
-    /* Secondary: soft off-white */
-    --secondary: 220 20% 97%;
-    --secondary-foreground: 215 60% 12%;
-
-    --muted: 220 20% 96%;
-    --muted-foreground: 215 15% 45%;
-
-    /* Accent: electric blue */
-    --accent: 212 72% 59%;
+    /* Dark mode is default in v2. We keep `:root` as dark and `.light` for inversion. */
+    --background: 240 11% 5%;          /* #0A0A0F */
+    --foreground: 0 0% 100%;
+    --card: 240 12% 9%;                /* #13131A */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 12% 9%;
+    --popover-foreground: 0 0% 100%;
+    --primary: 251 67% 80%;            /* #B5A8F0 lavender */
+    --primary-foreground: 240 30% 9%;
+    --secondary: 240 8% 14%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 240 8% 14%;
+    --muted-foreground: 240 5% 58%;    /* #8A8A95 */
+    --accent: 252 62% 71%;             /* #8E7FE0 deeper purple */
     --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
+    --destructive: 0 70% 60%;
     --destructive-foreground: 0 0% 100%;
+    --border: 240 7% 28%;              /* #44444E */
+    --input: 240 8% 16%;
+    --ring: 251 67% 80%;
 
-    --border: 220 16% 90%;
-    --input: 220 16% 90%;
-    --ring: 212 72% 59%;
+    --chart-1: 251 67% 80%;
+    --chart-2: 252 62% 71%;
+    --chart-3: 200 70% 60%;
+    --chart-4: 30 70% 60%;
+    --chart-5: 145 60% 55%;
 
-    --chart-1: 212 72% 59%;
-    --chart-2: 215 60% 12%;
-    --chart-3: 280 60% 60%;
-    --chart-4: 35 90% 60%;
-    --chart-5: 160 60% 45%;
+    --radius: 0.75rem;
 
-    --radius: 1rem;
+    --font-sans: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
 
-    --font-sans: 'Inter', system-ui, sans-serif;
-    --font-display: 'Fraunces', Georgia, serif;
-
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 215 60% 12%;
-    --sidebar-primary: 215 60% 12%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 20% 96%;
-    --sidebar-accent-foreground: 215 60% 12%;
-    --sidebar-border: 220 16% 90%;
-    --sidebar-ring: 212 72% 59%;
+    --sidebar-background: 240 12% 9%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 251 67% 80%;
+    --sidebar-primary-foreground: 240 30% 9%;
+    --sidebar-accent: 240 8% 14%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 240 7% 28%;
+    --sidebar-ring: 251 67% 80%;
   }
 
-  .dark {
-    --background: 215 60% 7%;
-    --foreground: 0 0% 98%;
-    --card: 215 50% 10%;
-    --card-foreground: 0 0% 98%;
-    --popover: 215 50% 10%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 215 60% 12%;
-    --secondary: 215 40% 14%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 215 40% 14%;
-    --muted-foreground: 215 15% 65%;
-    --accent: 212 72% 59%;
+  .light {
+    --background: 0 0% 100%;
+    --foreground: 252 35% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 252 35% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 252 35% 13%;
+    --primary: 252 60% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 10% 96%;
+    --secondary-foreground: 252 35% 13%;
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 5% 45%;
+    --accent: 252 60% 55%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 215 40% 18%;
-    --input: 215 40% 18%;
-    --ring: 212 72% 59%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 10% 88%;
+    --input: 240 10% 88%;
+    --ring: 252 60% 55%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
+  * { @apply border-border outline-ring/50; }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
   }
-  .font-display {
-    font-family: var(--font-display);
-    font-feature-settings: "ss01";
-  }
+  h1, h2, h3, h4, h5, h6 { font-weight: 500; letter-spacing: -0.01em; }
+  /* Never bold per design spec — clamp 600/700 to 500 in our headings */
 }
 
 @layer utilities {
-  .gradient-mesh {
-    background-image:
-      radial-gradient(at 20% 10%, hsla(212, 72%, 59%, 0.18) 0px, transparent 50%),
-      radial-gradient(at 80% 20%, hsla(215, 60%, 12%, 0.08) 0px, transparent 50%),
-      radial-gradient(at 50% 90%, hsla(212, 72%, 59%, 0.12) 0px, transparent 50%);
-  }
-  .text-balance { text-wrap: balance; }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
   .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .text-balance { text-wrap: balance; }
 }

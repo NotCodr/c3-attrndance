@@ -1,0 +1,24 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "actor_email": {
+      "type": "string"
+    },
+    "club_id": {
+      "type": "string"
+    },
+    "event_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "action"
+  ]
+}
