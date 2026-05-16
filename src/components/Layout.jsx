@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Home, Compass, Calendar, Briefcase, User, Search, Sparkles } from 'lucide-react';
+import { Home, Compass, Calendar, Briefcase, User, Search, Sparkles, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/', label: 'Feed', icon: Home },
   { to: '/discover', label: 'Discover', icon: Compass },
   { to: '/events', label: 'Events', icon: Calendar },
+  { to: '/map', label: 'Map', icon: MapPin },
   { to: '/opportunities', label: 'Opportunities', icon: Briefcase },
 ];
 

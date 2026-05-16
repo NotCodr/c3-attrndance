@@ -14,6 +14,7 @@ import ClubProfile from '@/pages/ClubProfile';
 import EventDetail from '@/pages/EventDetail';
 import Dashboard from '@/pages/Dashboard';
 import Onboarding from '@/pages/Onboarding';
+import MapPage from '@/pages/Map';
 import { Toaster as SonnerToaster } from 'sonner';
 
 const AuthenticatedApp = () => {
@@ -47,6 +48,7 @@ const AuthenticatedApp = () => {
         <Route path="/discover" element={<Discover />} />
         <Route path="/events" element={<Events />} />
         <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/map" element={<MapPage />} />
         <Route path="/club/:id" element={<ClubProfile />} />
         <Route path="/event/:id" element={<EventDetail />} />
         <Route path="/dashboard" element={<Dashboard />} />
