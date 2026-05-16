@@ -1,0 +1,82 @@
+{
+  "name": "Club",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "university": {
+      "type": "string",
+      "enum": [
+        "UMelb",
+        "UWA"
+      ]
+    },
+    "tagline": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "ai_summary": {
+      "type": "string",
+      "description": "AI-generated vibe summary"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "instagram": {
+      "type": "string"
+    },
+    "website": {
+      "type": "string"
+    },
+    "email": {
+      "type": "string"
+    },
+    "member_count": {
+      "type": "number",
+      "default": 0
+    },
+    "follower_count": {
+      "type": "number",
+      "default": 0
+    },
+    "meeting_info": {
+      "type": "string"
+    },
+    "membership_fee": {
+      "type": "string"
+    },
+    "international_friendly": {
+      "type": "boolean",
+      "default": false
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "name",
+    "university"
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "name": "Event",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "club_id": {
+      "type": "string"
+    },
+    "club_name": {
+      "type": "string"
+    },
+    "university": {
+      "type": "string",
+      "enum": [
+        "UMelb",
+        "UWA"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "location": {
+      "type": "string"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false
+    },
+    "cover_url": {
+      "type": "string"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "price": {
+      "type": "string",
+      "default": "Free"
+    },
+    "rsvp_count": {
+      "type": "number",
+      "default": 0
+    },
+    "capacity": {
+      "type": "number"
+    },
+    "rsvp_url": {
+      "type": "string"
+    },
+    "international_friendly": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "title",
+    "start_date",
+    "university"
+  ]
+}

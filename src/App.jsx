@@ -5,7 +5,16 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-// Add page imports here
+import Layout from '@/components/Layout';
+import Feed from '@/pages/Feed';
+import Discover from '@/pages/Discover';
+import Events from '@/pages/Events';
+import Opportunities from '@/pages/Opportunities';
+import ClubProfile from '@/pages/ClubProfile';
+import EventDetail from '@/pages/EventDetail';
+import Dashboard from '@/pages/Dashboard';
+import Onboarding from '@/pages/Onboarding';
+import { Toaster as SonnerToaster } from 'sonner';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -33,7 +42,16 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Feed />} />
+        <Route path="/discover" element={<Discover />} />
+        <Route path="/events" element={<Events />} />
+        <Route path="/opportunities" element={<Opportunities />} />
+        <Route path="/club/:id" element={<ClubProfile />} />
+        <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
@@ -49,6 +67,7 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        <SonnerToaster position="top-center" />
       </QueryClientProvider>
     </AuthProvider>
   )

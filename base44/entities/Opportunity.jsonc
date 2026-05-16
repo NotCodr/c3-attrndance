@@ -1,0 +1,71 @@
+{
+  "name": "Opportunity",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "organization": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "internship",
+        "scholarship",
+        "competition",
+        "volunteer",
+        "research",
+        "leadership"
+      ]
+    },
+    "university": {
+      "type": "string",
+      "enum": [
+        "UMelb",
+        "UWA",
+        "Both"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date"
+    },
+    "location": {
+      "type": "string"
+    },
+    "remote_ok": {
+      "type": "boolean",
+      "default": false
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "apply_url": {
+      "type": "string"
+    },
+    "international_eligible": {
+      "type": "boolean",
+      "default": true
+    },
+    "stipend": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "type"
+  ]
+}

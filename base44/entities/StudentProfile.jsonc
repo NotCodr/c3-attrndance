@@ -1,0 +1,98 @@
+{
+  "name": "StudentProfile",
+  "type": "object",
+  "properties": {
+    "display_name": {
+      "type": "string"
+    },
+    "university": {
+      "type": "string",
+      "enum": [
+        "UMelb",
+        "UWA"
+      ]
+    },
+    "year_of_study": {
+      "type": "string",
+      "enum": [
+        "1st year",
+        "2nd year",
+        "3rd year",
+        "4th year",
+        "Honours",
+        "Masters",
+        "PhD"
+      ]
+    },
+    "major": {
+      "type": "string"
+    },
+    "international": {
+      "type": "boolean",
+      "default": false
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "vibe_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "AI-derived from onboarding quiz"
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "followed_clubs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "saved_events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "saved_opportunities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "rsvp_events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    },
+    "onboarding_complete": {
+      "type": "boolean",
+      "default": false
+    },
+    "avatar_url": {
+      "type": "string"
+    },
+    "demo_role": {
+      "type": "string",
+      "enum": [
+        "student",
+        "guest"
+      ],
+      "default": "student"
+    }
+  },
+  "required": []
+}
