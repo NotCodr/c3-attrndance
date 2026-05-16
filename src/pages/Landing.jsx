@@ -1,56 +1,73 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ScanLine, FileText, Receipt, ArrowRight, Github } from 'lucide-react';
+import { ScanLine, FileText, Receipt, ArrowRight, Github, Search } from 'lucide-react';
+import Logo from '@/components/Logo';
+import Decorations from '@/components/Decorations';
 
 function Section({ children, className = '' }) {
-  return <section className={`max-w-5xl mx-auto px-6 ${className}`}>{children}</section>;
+  return <section className={`max-w-6xl mx-auto px-6 ${className}`}>{children}</section>;
 }
 
 export default function Landing() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen text-foreground">
       {/* Nav */}
-      <header className="border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">c3</div>
-            <span className="font-medium tracking-tight">connect3</span>
+      <header className="relative z-10">
+        <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5">
+            <Logo size={44} />
+            <span className="font-display font-bold text-2xl tracking-tight">connect3</span>
           </Link>
-          <Link to="/dashboard" className="c3-btn-secondary text-xs">sign in</Link>
+          <Link to="/dashboard" className="c3-btn-primary">
+            sign in <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </header>
 
       {/* Hero */}
-      <Section className="pt-20 pb-24 text-center">
-        <p className="text-xs text-primary mb-4 tracking-wider uppercase">for university club committees</p>
-        <h1 className="text-4xl md:text-6xl font-medium tracking-tight text-balance">
-          The paperwork tool every club committee secretly wants.
-        </h1>
-        <p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto text-balance">
-          Connect3 turns grant-funded events into one-click acquittal packs. Built for UniMelb clubs first.
-        </p>
-        <div className="mt-10 flex items-center justify-center gap-3">
-          <Link to="/dashboard" className="c3-btn-primary text-base px-6 py-3">
-            Try it free — no card
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-        </div>
-      </Section>
+      <div className="relative">
+        <Decorations variant="hero" />
+        <Section className="relative pt-12 pb-32 text-center">
+          <div className="inline-block c3-chip-purple mb-6">
+            ✨ for university club committees
+          </div>
+          <h1 className="font-display font-bold uppercase tracking-tight text-5xl md:text-7xl lg:text-8xl text-balance leading-[0.95]">
+            it takes three<br />
+            <span className="relative inline-block">
+              <span className="relative z-10">to connect</span>
+              <span className="absolute -bottom-1 left-0 right-0 h-4 md:h-6 bg-primary/40 rounded-full -z-0" aria-hidden />
+            </span>
+          </h1>
+          <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
+            find events, run clubs, file grants — all-in-one. Built for UniMelb clubs first.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
+            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
+              sign up <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link to="/dashboard" className="c3-btn-secondary text-base px-7 py-3.5">
+              <Search className="w-4 h-4" /> search
+            </Link>
+          </div>
+        </Section>
+      </div>
 
       {/* The pain */}
-      <Section className="py-20 border-t border-border">
-        <h2 className="text-2xl md:text-3xl font-medium text-center text-balance max-w-2xl mx-auto">
-          If you've ever stayed up at 1am chasing photos and receipts for an AFP, you know the problem.
+      <Section className="py-20">
+        <h2 className="text-3xl md:text-5xl font-display font-bold text-center text-balance max-w-3xl mx-auto leading-tight">
+          stayed up at 1am chasing receipts? <span className="text-primary">we get it.</span>
         </h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-4">
+        <div className="mt-14 grid md:grid-cols-3 gap-5">
           {[
-            { icon: FileText, title: 'paper attendance lists', body: 'Hand-written sheets that get lost or smudged.' },
-            { icon: Receipt, title: 'scattered receipts', body: 'WhatsApp threads, photo rolls, email inboxes.' },
-            { icon: FileText, title: 'manual AFP forms', body: 'Typing the same details across PDFs every term.' },
+            { icon: FileText, title: 'paper attendance lists', body: 'Hand-written sheets that get lost or smudged.', tilt: '-rotate-1' },
+            { icon: Receipt, title: 'scattered receipts', body: 'WhatsApp threads, photo rolls, email inboxes.', tilt: 'rotate-1' },
+            { icon: FileText, title: 'manual AFP forms', body: 'Typing the same details across PDFs every term.', tilt: '-rotate-1' },
           ].map((c) => (
-            <div key={c.title} className="c3-card p-6">
-              <c.icon className="w-5 h-5 text-primary mb-3" />
-              <p className="font-medium mb-1">{c.title}</p>
+            <div key={c.title} className={`c3-card p-7 ${c.tilt} hover:rotate-0 transition-transform`}>
+              <div className="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center mb-4">
+                <c.icon className="w-6 h-6 text-primary" />
+              </div>
+              <p className="font-display font-bold text-xl mb-2">{c.title}</p>
               <p className="text-sm text-muted-foreground">{c.body}</p>
             </div>
           ))}
@@ -58,38 +75,60 @@ export default function Landing() {
       </Section>
 
       {/* What you get */}
-      <Section className="py-20 border-t border-border">
-        <p className="text-xs uppercase tracking-wider text-primary text-center mb-2">what you get</p>
-        <h2 className="text-2xl md:text-3xl font-medium text-center text-balance">From event night to submitted, in minutes.</h2>
-        <div className="mt-12 grid md:grid-cols-3 gap-4">
-          {[
-            { icon: ScanLine, title: 'QR check-in', body: 'Students scan in at the door. Timestamps captured server-side, UMSU-compliant.' },
-            { icon: FileText, title: 'Green sheet PDF', body: 'Auto-generated attendance record with full name, student number, course, and arrival time.' },
-            { icon: Receipt, title: 'One-click acquittal pack', body: 'Photos, receipts, attendance, and a pre-filled Application for Payment — combined into one PDF.' },
-          ].map((c, i) => (
-            <div key={c.title} className="c3-card p-6">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-                <span className="w-5 h-5 rounded-full bg-secondary border border-border flex items-center justify-center">{i + 1}</span>
+      <div className="relative">
+        <Decorations variant="sparse" />
+        <Section className="relative py-24">
+          <p className="text-sm uppercase tracking-widest text-primary text-center mb-3 font-semibold">what you get</p>
+          <h2 className="text-3xl md:text-5xl font-display font-bold text-center text-balance leading-tight">
+            from event night to submitted,<br />in minutes.
+          </h2>
+          <div className="mt-14 grid md:grid-cols-3 gap-5">
+            {[
+              { icon: ScanLine, title: 'QR check-in', body: 'Students scan in at the door. Timestamps captured server-side, UMSU-compliant.', n: 1 },
+              { icon: FileText, title: 'green sheet PDF', body: 'Auto-generated attendance with full name, student number, course, and arrival time.', n: 2 },
+              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance, and a pre-filled AFP — combined into one PDF.', n: 3 },
+            ].map((c) => (
+              <div key={c.title} className="c3-card p-7">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-display font-bold text-lg">
+                    {c.n}
+                  </div>
+                  <c.icon className="w-5 h-5 text-muted-foreground" />
+                </div>
+                <p className="font-display font-bold text-xl mb-2">{c.title}</p>
+                <p className="text-sm text-muted-foreground">{c.body}</p>
               </div>
-              <c.icon className="w-5 h-5 text-primary mb-3" />
-              <p className="font-medium mb-1">{c.title}</p>
-              <p className="text-sm text-muted-foreground">{c.body}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+        </Section>
+      </div>
+
+      {/* CTA card */}
+      <Section className="py-12">
+        <div className="c3-card p-10 md:p-14 text-center relative overflow-hidden">
+          <Decorations variant="sparse" />
+          <div className="relative">
+            <Logo size={72} className="mb-6" />
+            <h3 className="font-display font-bold text-3xl md:text-4xl mb-3 text-balance">
+              ready to skip the paperwork?
+            </h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              free for student clubs. set up in under 5 minutes.
+            </p>
+            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
+              get started <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </Section>
 
-      {/* Trust */}
-      <Section className="py-16 border-t border-border text-center">
-        <p className="text-sm text-muted-foreground">
-          Built by DSCubed at UniMelb. Free for student clubs. <span className="text-foreground">Open source.</span>
-        </p>
-      </Section>
-
       {/* Footer */}
-      <footer className="border-t border-border py-10 mt-4">
-        <Section className="flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
-          <span>© {new Date().getFullYear()} Connect3</span>
+      <footer className="py-10">
+        <Section className="flex flex-wrap items-center justify-between gap-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <Logo size={24} />
+            <span>© {new Date().getFullYear()} connect3 · built by DSCubed at UniMelb</span>
+          </div>
           <div className="flex items-center gap-5">
             <Link to="/privacy" className="hover:text-foreground">privacy</Link>
             <Link to="/terms" className="hover:text-foreground">terms</Link>

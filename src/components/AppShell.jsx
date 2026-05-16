@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { listMyClubs, getCurrentUser } from '@/lib/clubs';
 import { Calendar, Users, Settings, FileText, LogOut, ChevronDown, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Logo from '@/components/Logo';
 
 function NavLink({ to, icon: Icon, children, active }) {
   return (
@@ -49,12 +50,12 @@ export default function AppShell() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top bar */}
-      <header className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
+      <header className="border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-primary text-primary-foreground flex items-center justify-center text-xs font-medium">c3</div>
-              <span className="text-base font-medium tracking-tight">connect3</span>
+              <Logo size={32} />
+              <span className="font-display font-bold text-lg tracking-tight">connect3</span>
             </Link>
 
             {/* Club switcher */}
@@ -62,7 +63,7 @@ export default function AppShell() {
               <div className="relative">
                 <button
                   onClick={() => setOpen(!open)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-card text-sm hover:bg-secondary/60 transition"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full border-2 border-border bg-card text-sm hover:bg-secondary/60 transition"
                 >
                   <span className="text-muted-foreground">club</span>
                   <span>{activeClub?.name || clubs[0]?.name || 'Choose club'}</span>
