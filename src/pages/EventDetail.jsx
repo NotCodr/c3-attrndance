@@ -6,7 +6,6 @@ import { formatEventTimeRange, formatMoneyCents, randomToken, slugify } from '@/
 import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Loader2, Copy, AlertTriangle, X, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateAttendancePdf } from '@/lib/pdf';
-import AttendanceExportMenu from '@/components/events/AttendanceExportMenu';
 
 export default function EventDetail() {
   const { clubSlug, eventId } = useParams();
@@ -149,8 +148,12 @@ export default function EventDetail() {
             <p className="text-xs text-muted-foreground mt-0.5">{event.is_grant_funded ? 'photos, receipts, AFP' : 'photos & report'}</p>
           </Link>
         )}
-        {canManageAcquittal(role) && (
-          <AttendanceExportMenu event={event} club={club} rsvps={rsvps} checkIns={checkIns} />
+        {canManageAcquittal(role) && checkIns.length > 0 && (
+          <button onClick={downloadAttendance} className="c3-card p-4 hover:bg-secondary/30 transition text-left">
+            <Receipt className="w-5 h-5 text-primary mb-2" />
+            <p className="font-medium text-sm">attendance pdf</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{checkIns.length} checked in</p>
+          </button>
         )}
       </div>
 
