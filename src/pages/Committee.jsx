@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getClubBySlug, getMyRoleInClub, canEditEvents } from '@/lib/clubs';
 import { toast } from 'sonner';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
@@ -21,7 +21,7 @@ export default function Committee() {
     const c = await getClubBySlug(clubSlug);
     setClub(c);
     if (user?.email) setRole(await getMyRoleInClub(c.id, user.email));
-    setMembers(await base44.entities.ClubMembership.filter({ club_id: c.id }));
+    setMembers(await db.ClubMembership.filter({ club_id: c.id }));
   };
   useEffect(() => { reload(); }, [clubSlug, user?.email]);
 
@@ -32,13 +32,13 @@ export default function Committee() {
     e.preventDefault();
     const lc = email.toLowerCase().trim();
     if (!lc) return;
-    const existing = await base44.entities.ClubMembership.filter({ club_id: club.id, user_email: lc });
+    const existing = await db.ClubMembership.filter({ club_id: club.id, user_email: lc });
     if (existing[0]) return toast.error('Already a member.');
     setInviting(true);
-    await base44.entities.ClubMembership.create({
+    await db.ClubMembership.create({
       club_id: club.id, user_email: lc, role: inviteRole, invited_by_email: user?.email,
     });
-    await base44.entities.AuditLog.create({ club_id: club.id, action: 'committee.invited', actor_email: user?.email, metadata: { email: lc, role: inviteRole } });
+    await db.AuditLog.create({ club_id: club.id, action: 'committee.invited', actor_email: user?.email, metadata: { email: lc, role: inviteRole } });
     setEmail('');
     setInviting(false);
     toast.success('Member added');
@@ -47,14 +47,14 @@ export default function Committee() {
 
   const changeRole = async (m, newRole) => {
     if (m.role === 'owner' && role !== 'owner') return toast.error('Only the owner can change the owner.');
-    await base44.entities.ClubMembership.update(m.id, { role: newRole });
+    await db.ClubMembership.update(m.id, { role: newRole });
     reload();
   };
 
   const remove = async (m) => {
     if (m.role === 'owner') return toast.error("Can't remove the owner.");
     if (!confirm(`Remove ${m.user_email}?`)) return;
-    await base44.entities.ClubMembership.delete(m.id);
+    await db.ClubMembership.delete(m.id);
     reload();
   };
 

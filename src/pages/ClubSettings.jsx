@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getClubBySlug, getMyRoleInClub, canEditEvents } from '@/lib/clubs';
 import { toast } from 'sonner';
 import { Loader2, ExternalLink } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function ClubSettings() {
   const save = async (e) => {
     e.preventDefault();
     setSaving(true);
-    await base44.entities.Club.update(club.id, {
+    await db.Club.update(club.id, {
       ...form,
       primary_contact_email: form.primary_contact_email.toLowerCase().trim(),
       treasurer_email: (form.treasurer_email || form.primary_contact_email).toLowerCase().trim(),

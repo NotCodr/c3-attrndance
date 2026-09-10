@@ -23,9 +23,6 @@
     "purchase_date": {
       "type": "string",
       "format": "date"
-    },
-    "uploaded_by_email": {
-      "type": "string"
     }
   },
   "required": [
@@ -34,5 +31,17 @@
     "description",
     "amount_cents",
     "purchase_date"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

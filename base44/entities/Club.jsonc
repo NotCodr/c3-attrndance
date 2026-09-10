@@ -3,14 +3,18 @@
   "type": "object",
   "properties": {
     "name": {
-      "type": "string"
+      "type": "string",
+      "description": "Club name"
     },
     "slug": {
       "type": "string",
-      "description": "URL-safe identifier, lowercase, alphanumeric+hyphen"
+      "description": "URL-safe lowercase identifier"
     },
-    "university_slug": {
+    "university": {
       "type": "string",
+      "enum": [
+        "unimelb"
+      ],
       "default": "unimelb"
     },
     "university_name": {
@@ -20,18 +24,6 @@
     "union_name": {
       "type": "string",
       "default": "UMSU"
-    },
-    "grant_categories": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": [
-        "Functions",
-        "Camps",
-        "Excursions",
-        "General"
-      ]
     },
     "umsu_affiliation_code": {
       "type": "string"
@@ -63,5 +55,17 @@
     "name",
     "slug",
     "primary_contact_email"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

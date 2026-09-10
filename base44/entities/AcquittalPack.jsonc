@@ -17,12 +17,6 @@
     "attendee_count": {
       "type": "number"
     },
-    "photos_count": {
-      "type": "number"
-    },
-    "receipts_count": {
-      "type": "number"
-    },
     "generated_by_email": {
       "type": "string"
     },
@@ -41,7 +35,18 @@
   },
   "required": [
     "event_id",
-    "pdf_url",
-    "version"
-  ]
+    "pdf_url"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

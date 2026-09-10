@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db, api } from '@/api/db';
 import { getMyRoleInClub, canManageAcquittal } from '@/lib/clubs';
 import { formatMoneyCents, formatDate } from '@/lib/format';
 import { generateAcquittalPack, downloadBlob } from '@/lib/pdf';
+import { UMSU_RULES } from '@/lib/umsu';
 import { Upload, Loader2, Trash2, CheckCircle2, Circle, Download, ArrowLeft, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,15 +38,15 @@ export default function EventAcquittal() {
   const [pUploading, setPUploading] = useState(false);
 
   const reload = async () => {
-    const ev = (await base44.entities.Event.filter({ id: eventId }))[0];
+    const ev = (await db.Event.filter({ id: eventId }))[0];
     setEvent(ev);
-    const c = (await base44.entities.Club.filter({ id: ev.club_id }))[0];
+    const c = (await db.Club.filter({ id: ev.club_id }))[0];
     setClub(c);
     if (user?.email) setRole(await getMyRoleInClub(ev.club_id, user.email));
-    setCheckIns(await base44.entities.CheckIn.filter({ event_id: eventId }, 'checked_in_at'));
-    setPhotos(await base44.entities.EventPhoto.filter({ event_id: eventId }, 'display_order'));
-    setReceipts(await base44.entities.EventReceipt.filter({ event_id: eventId }));
-    setPacks(await base44.entities.AcquittalPack.filter({ event_id: eventId }, '-created_date'));
+    setCheckIns(await db.CheckIn.filter({ event_id: eventId }, 'checked_in_at'));
+    setPhotos(await db.EventPhoto.filter({ event_id: eventId }, 'display_order'));
+    setReceipts(await db.EventReceipt.filter({ event_id: eventId }));
+    setPacks(await db.AcquittalPack.filter({ event_id: eventId }, '-created_date'));
     setAfp((prev) => ({
       ...prev,
       club_name: prev.club_name || c.name,
@@ -70,15 +71,15 @@ export default function EventAcquittal() {
     setPUploading(true);
     for (const f of files) {
       if (f.size > 10 * 1024 * 1024) { toast.error(`${f.name} is over 10 MB`); continue; }
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-      await base44.entities.EventPhoto.create({
+      const { file_url } = await api.upload(f, event.club_id);
+      await db.EventPhoto.create({
         event_id: event.id, club_id: event.club_id, file_url, display_order: photos.length,
       });
     }
     setPUploading(false);
     reload();
   };
-  const deletePhoto = async (id) => { await base44.entities.EventPhoto.delete(id); reload(); };
+  const deletePhoto = async (id) => { await db.EventPhoto.delete(id); reload(); };
 
   const onReceiptUpload = async (e) => {
     const f = e.target.files?.[0];
@@ -88,8 +89,8 @@ export default function EventAcquittal() {
     if (!rDate) return toast.error('Purchase date required.');
     if (f.size > 10 * 1024 * 1024) return toast.error('File over 10 MB');
     setRUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
-    await base44.entities.EventReceipt.create({
+    const { file_url } = await api.upload(f, event.club_id);
+    await db.EventReceipt.create({
       event_id: event.id,
       club_id: event.club_id,
       file_url,
@@ -103,7 +104,7 @@ export default function EventAcquittal() {
     e.target.value = '';
     reload();
   };
-  const deleteReceipt = async (id) => { await base44.entities.EventReceipt.delete(id); reload(); };
+  const deleteReceipt = async (id) => { await db.EventReceipt.delete(id); reload(); };
 
   const canGenerate = checkIns.length > 0 && photos.length >= 1 && receipts.length >= 1 && (event.is_grant_funded ? afpReviewed : true);
 
@@ -117,14 +118,14 @@ export default function EventAcquittal() {
     });
     const blob = new Blob([bytes], { type: 'application/pdf' });
     const file = new File([blob], `acquittal-${club.slug}-${event.starts_at.slice(0, 10)}.pdf`, { type: 'application/pdf' });
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
+    const { file_url } = await api.upload(file, event.club_id);
     const version = (packs[0]?.version || 0) + 1;
-    await base44.entities.AcquittalPack.create({
+    await db.AcquittalPack.create({
       event_id: event.id, club_id: event.club_id, pdf_url: file_url,
       total_receipts_cents: totalReceipts, attendee_count: checkIns.length,
       generated_by_email: user?.email, version,
     });
-    await base44.entities.AuditLog.create({ club_id: event.club_id, event_id: event.id, action: 'acquittal.generated', actor_email: user?.email, metadata: { version } });
+    await db.AuditLog.create({ club_id: event.club_id, event_id: event.id, action: 'acquittal.generated', actor_email: user?.email, metadata: { version } });
     downloadBlob(bytes, `acquittal-${club.slug}-${event.starts_at.slice(0, 10)}-v${version}.pdf`);
     setGenerating(false);
     reload();
@@ -132,7 +133,7 @@ export default function EventAcquittal() {
   };
 
   const markSubmitted = async (pack) => {
-    await base44.entities.AcquittalPack.update(pack.id, { submitted_to_union: true, submitted_at: new Date().toISOString() });
+    await db.AcquittalPack.update(pack.id, { submitted_to_union: true, submitted_at: new Date().toISOString() });
     toast.success('Marked as submitted');
     reload();
   };
@@ -145,11 +146,22 @@ export default function EventAcquittal() {
 
       {/* Checklist */}
       <div className="c3-card divide-y divide-border mb-8">
-        <Check item label="Attendance list" done={checkIns.length > 0} sub={`${checkIns.length} check-in${checkIns.length === 1 ? '' : 's'} recorded`} />
-        <Check item label={`Event photos (recommended ≥3)`} done={photos.length >= 1} sub={`${photos.length} uploaded`} />
-        <Check item label="Receipts (≥1 required)" done={receipts.length >= 1} sub={`${receipts.length} uploaded · ${formatMoneyCents(totalReceipts)}`} />
+        <Check label="Attendance list" done={checkIns.length > 0} sub={`${checkIns.length} check-in${checkIns.length === 1 ? '' : 's'} recorded`} />
+        <Check
+          label={`Event photos (recommended ≥${UMSU_RULES.minimum_photos_recommended})`}
+          done={photos.length >= UMSU_RULES.minimum_photos_recommended}
+          warn={photos.length >= 1 && photos.length < UMSU_RULES.minimum_photos_recommended}
+          sub={
+            photos.length === 0
+              ? 'none uploaded'
+              : photos.length < UMSU_RULES.minimum_photos_recommended
+                ? `${photos.length} uploaded · ${UMSU_RULES.minimum_photos_recommended} recommended for UMSU`
+                : `${photos.length} uploaded`
+          }
+        />
+        <Check label="Receipts (≥1 required)" done={receipts.length >= 1} sub={`${receipts.length} uploaded · ${formatMoneyCents(totalReceipts)}`} />
         {event.is_grant_funded && (
-          <Check item label="Application for Payment reviewed" done={afpReviewed} sub={afpReviewed ? 'ready' : 'review below'} />
+          <Check label="Application for Payment reviewed" done={afpReviewed} sub={afpReviewed ? 'ready' : 'review below'} />
         )}
       </div>
 
@@ -282,10 +294,14 @@ export default function EventAcquittal() {
   );
 }
 
-function Check({ label, done, sub }) {
+function Check({ label, done, warn, sub }) {
   return (
     <div className="p-4 flex items-center gap-3">
-      {done ? <CheckCircle2 className="w-5 h-5 text-primary" /> : <Circle className="w-5 h-5 text-muted-foreground" />}
+      {done
+        ? <CheckCircle2 className="w-5 h-5 text-primary" />
+        : warn
+          ? <AlertTriangle className="w-5 h-5 text-amber-400" />
+          : <Circle className="w-5 h-5 text-muted-foreground" />}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium">{label}</p>
         {sub && <p className="text-xs text-muted-foreground">{sub}</p>}

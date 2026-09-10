@@ -35,8 +35,7 @@
       "type": "string"
     },
     "capacity": {
-      "type": "number",
-      "description": "Null = unlimited"
+      "type": "number"
     },
     "rsvp_required": {
       "type": "boolean",
@@ -52,20 +51,11 @@
         "Functions",
         "Camps",
         "Excursions",
-        "General",
-        ""
+        "General"
       ]
     },
     "grant_amount_cents": {
       "type": "number"
-    },
-    "ask_dietary": {
-      "type": "boolean",
-      "default": false
-    },
-    "ask_accessibility": {
-      "type": "boolean",
-      "default": false
     },
     "status": {
       "type": "string",
@@ -92,12 +82,15 @@
       "type": "string"
     },
     "qr_token": {
-      "type": "string",
-      "description": "Random 32-char token, generated on publish"
+      "type": "string"
     },
-    "deleted_at": {
-      "type": "string",
-      "format": "date-time"
+    "collect_dietary": {
+      "type": "boolean",
+      "default": false
+    },
+    "collect_accessibility": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [
@@ -106,5 +99,17 @@
     "starts_at",
     "ends_at",
     "location_name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

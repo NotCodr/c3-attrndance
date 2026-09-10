@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getClubBySlug } from '@/lib/clubs';
 import { BarChart3, Users, CheckCircle2, TrendingUp, Calendar, RefreshCw } from 'lucide-react';
 import StatTile from '@/components/analytics/StatTile';
@@ -28,9 +28,9 @@ export default function Analytics() {
     if (!c) { setLoading(false); return; }
     setClub(c);
     const [ev, rs, ci] = await Promise.all([
-      base44.entities.Event.filter({ club_id: c.id }, '-starts_at'),
-      base44.entities.RSVP.filter({ club_id: c.id }),
-      base44.entities.CheckIn.filter({ club_id: c.id }),
+      db.Event.filter({ club_id: c.id }, '-starts_at'),
+      db.RSVP.filter({ club_id: c.id }),
+      db.CheckIn.filter({ club_id: c.id }),
     ]);
     setEvents(ev);
     setRsvps(rs);

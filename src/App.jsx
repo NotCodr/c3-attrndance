@@ -1,11 +1,10 @@
-import { Toaster } from "@/components/ui/toaster"
-import { QueryClientProvider } from '@tanstack/react-query'
-import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import PageNotFound from './lib/PageNotFound';
-import { AuthProvider, useAuth } from '@/lib/AuthContext';
-import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { Toaster } from '@/components/ui/toaster';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClientInstance } from '@/lib/query-client';
+import { BrowserRouter as Router, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { Toaster as SonnerToaster } from 'sonner';
+import PageNotFound from '@/lib/PageNotFound';
+import { AuthProvider, useAuth } from '@/lib/AuthContext';
 
 import Landing from '@/pages/Landing';
 import Dashboard from '@/pages/Dashboard';
@@ -27,28 +26,60 @@ import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import AppShell from '@/components/AppShell';
 
-const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin, currentUser } = useAuth();
+import Login from '@/pages/auth/Login';
+import Signup from '@/pages/auth/Signup';
+import VerifyEmail from '@/pages/auth/VerifyEmail';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background">
-        <div className="w-10 h-10 border-[3px] border-border border-t-primary rounded-full animate-spin"></div>
-      </div>
-    );
+function FullPageSpinner() {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center bg-background">
+      <div className="w-10 h-10 border-[3px] border-border border-t-primary rounded-full animate-spin" />
+    </div>
+  );
+}
+
+/** Gate for the committee app. Remembers where you were headed. */
+function RequireAuth({ children }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <FullPageSpinner />;
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   }
+  return children;
+}
 
+/** Keeps signed-in users away from the sign-in screens. */
+function RedirectIfAuthed({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <FullPageSpinner />;
+  if (user) return <Navigate to="/dashboard" replace />;
+  return children;
+}
+
+function AppRoutes() {
   return (
     <Routes>
-      {/* Public routes — no auth required */}
+      {/* Public */}
       <Route path="/" element={<Landing />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/rsvp/:eventId" element={<PublicRSVP />} />
       <Route path="/p/:clubSlug" element={<PublicClub />} />
 
-      {/* Authenticated routes — gated below */}
-      <Route element={<AuthGate authError={authError} navigateToLogin={navigateToLogin} currentUser={currentUser}><AppShell /></AuthGate>}>
+      {/* Authentication */}
+      <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
+      <Route path="/signup" element={<RedirectIfAuthed><Signup /></RedirectIfAuthed>} />
+      {/* Verification finishes a signup, so it must stay reachable mid-flow. */}
+      <Route path="/verify" element={<VerifyEmail />} />
+      <Route path="/forgot-password" element={<RedirectIfAuthed><ForgotPassword /></RedirectIfAuthed>} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+
+      {/* Committee app */}
+      <Route element={<RequireAuth><AppShell /></RequireAuth>}>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/onboard" element={<Onboard />} />
         <Route path="/account" element={<Account />} />
@@ -67,31 +98,18 @@ const AuthenticatedApp = () => {
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
-};
-
-function AuthGate({ children, authError, navigateToLogin, currentUser }) {
-  if (authError) {
-    if (authError.type === 'user_not_registered') return <UserNotRegisteredError />;
-    if (authError.type === 'auth_required') {
-      navigateToLogin();
-      return null;
-    }
-  }
-  return children;
 }
 
-function App() {
+export default function App() {
   return (
-    <AuthProvider>
-      <QueryClientProvider client={queryClientInstance}>
-        <Router>
-          <AuthenticatedApp />
-        </Router>
-        <Toaster />
-        <SonnerToaster position="top-center" theme="light" />
-      </QueryClientProvider>
-    </AuthProvider>
-  )
+    <QueryClientProvider client={queryClientInstance}>
+      <Router>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </Router>
+      <Toaster />
+      <SonnerToaster position="top-center" theme="light" />
+    </QueryClientProvider>
+  );
 }
-
-export default App

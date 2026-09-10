@@ -14,9 +14,6 @@
     "caption": {
       "type": "string"
     },
-    "uploaded_by_email": {
-      "type": "string"
-    },
     "display_order": {
       "type": "number",
       "default": 0
@@ -25,5 +22,17 @@
   "required": [
     "event_id",
     "file_url"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

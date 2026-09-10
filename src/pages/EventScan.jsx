@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { db, recordCheckIn } from '@/api/db';
 import { getMyRoleInClub, canScan } from '@/lib/clubs';
 import { formatTime } from '@/lib/format';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -25,12 +25,12 @@ export default function EventScan() {
   const lastScanRef = useRef({ text: '', at: 0 });
 
   const reload = async () => {
-    const evs = await base44.entities.Event.filter({ id: eventId });
+    const evs = await db.Event.filter({ id: eventId });
     setEvent(evs[0]);
-    setClub((await base44.entities.Club.filter({ id: evs[0].club_id }))[0]);
+    setClub((await db.Club.filter({ id: evs[0].club_id }))[0]);
     if (user?.email) setRole(await getMyRoleInClub(evs[0].club_id, user.email));
-    setRsvps(await base44.entities.RSVP.filter({ event_id: eventId, status: 'confirmed' }));
-    setCheckIns(await base44.entities.CheckIn.filter({ event_id: eventId }));
+    setRsvps(await db.RSVP.filter({ event_id: eventId, status: 'confirmed' }));
+    setCheckIns(await db.CheckIn.filter({ event_id: eventId }));
   };
   useEffect(() => { reload(); }, [eventId, user?.email]);
 
@@ -77,11 +77,7 @@ export default function EventScan() {
     if (qrEventId !== event.id) return flash('error', 'This QR is for a different event.');
     if (!token) return flash('error', 'Invalid QR code.');
 
-    const rsvpList = await base44.entities.RSVP.filter({ event_id: event.id, rsvp_token: token });
-    const rsvp = rsvpList[0];
-    if (!rsvp) return flash('error', 'Invalid QR code.');
-
-    await checkInRsvp(rsvp, 'qr_scan');
+    await submitCheckIn({ rsvp_token: token, method: 'qr_scan' });
   };
 
   const flash = (kind, text) => {
@@ -89,27 +85,28 @@ export default function EventScan() {
     setTimeout(() => setScanStatus(null), 3000);
   };
 
-  const checkInRsvp = async (rsvp, method) => {
-    const existing = await base44.entities.CheckIn.filter({ event_id: event.id, rsvp_id: rsvp.id });
-    if (existing[0]) {
-      return flash('warn', `${rsvp.full_name} — already checked in at ${formatTime(existing[0].checked_in_at)}`);
+  /**
+   * Single entry point for all three check-in modes.
+   *
+   * Duplicate detection happens on the server: two scanners on two phones can
+   * hit the same attendee at once, and attendance counts feed the grant
+   * acquittal, so the check has to be somewhere both of them share.
+   */
+  const submitCheckIn = async (payload) => {
+    try {
+      const result = await recordCheckIn({ event_id: event.id, ...payload });
+      if (result.duplicate) {
+        flash('warn', `${result.full_name} — already checked in at ${formatTime(result.checked_in_at)}`);
+        return result;
+      }
+      if (navigator.vibrate) navigator.vibrate(60);
+      flash('ok', `${result.full_name} checked in`);
+      reload();
+      return result;
+    } catch (err) {
+      flash('error', err.message || 'Check-in failed.');
+      return null;
     }
-    await base44.entities.CheckIn.create({
-      event_id: event.id,
-      club_id: event.club_id,
-      rsvp_id: rsvp.id,
-      full_name: rsvp.full_name,
-      email: rsvp.email,
-      student_number: rsvp.student_number,
-      course: rsvp.course,
-      university: rsvp.university,
-      checked_in_at: new Date().toISOString(),
-      checked_in_by_email: user?.email,
-      method,
-    });
-    if (navigator.vibrate) navigator.vibrate(60);
-    flash('ok', `${rsvp.full_name} checked in`);
-    reload();
   };
 
   if (!event || !club) return <div className="text-sm text-muted-foreground">loading…</div>;
@@ -165,8 +162,14 @@ export default function EventScan() {
           </div>
         )}
 
-        {mode === 'lookup' && <Lookup rsvps={rsvps} checkIns={checkIns} onPick={(r) => checkInRsvp(r, 'manual_lookup')} />}
-        {mode === 'walkin' && <WalkIn event={event} user={user} onDone={reload} />}
+        {mode === 'lookup' && (
+          <Lookup
+            rsvps={rsvps}
+            checkIns={checkIns}
+            onPick={(r) => submitCheckIn({ rsvp_id: r.id, method: 'manual_lookup' })}
+          />
+        )}
+        {mode === 'walkin' && <WalkIn event={event} club={club} onSubmit={submitCheckIn} />}
       </div>
     </div>
   );
@@ -201,7 +204,7 @@ function Lookup({ rsvps, checkIns, onPick }) {
   );
 }
 
-function WalkIn({ event, user, onDone }) {
+function WalkIn({ event, club, onSubmit }) {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
@@ -213,23 +216,18 @@ function WalkIn({ event, user, onDone }) {
     if (!fullName.trim()) return;
     if (event.is_grant_funded && (!studentNumber.trim() || !course.trim())) return toast.error('Student # and course required for grant-funded events.');
     setSaving(true);
-    await base44.entities.CheckIn.create({
-      event_id: event.id,
-      club_id: event.club_id,
+    const result = await onSubmit({
+      method: 'walk_in_add',
       full_name: fullName.trim(),
       email: email.toLowerCase().trim() || undefined,
       student_number: studentNumber.trim() || undefined,
       course: course.trim() || undefined,
-      university: event.is_grant_funded ? 'unimelb' : undefined,
-      checked_in_at: new Date().toISOString(),
-      checked_in_by_email: user?.email,
-      method: 'walk_in_add',
+      university: event.is_grant_funded ? club?.university : undefined,
     });
-    if (navigator.vibrate) navigator.vibrate(60);
-    toast.success(`${fullName} checked in`);
-    setFullName(''); setEmail(''); setStudentNumber(''); setCourse('');
+    if (result) {
+      setFullName(''); setEmail(''); setStudentNumber(''); setCourse('');
+    }
     setSaving(false);
-    onDone();
   };
 
   return (

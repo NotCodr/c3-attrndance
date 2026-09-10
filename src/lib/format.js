@@ -64,9 +64,20 @@ export function slugify(s) {
     .slice(0, 60);
 }
 
+// Cryptographically secure. These tokens are the check-in credential embedded in
+// attendee QR codes, so a predictable PRNG (Math.random) would let them be forged.
 export function randomToken(len = 32) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let out = '';
-  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-  return out;
+  // Rejection-sample for a uniform distribution: 256 % 36 !== 0, so accepting every
+  // byte would bias the first four characters of the alphabet.
+  const limit = 256 - (256 % chars.length);
+  const out = [];
+  const buf = new Uint8Array(len);
+  while (out.length < len) {
+    crypto.getRandomValues(buf);
+    for (let i = 0; i < buf.length && out.length < len; i++) {
+      if (buf[i] < limit) out.push(chars[buf[i] % chars.length]);
+    }
+  }
+  return out.join('');
 }

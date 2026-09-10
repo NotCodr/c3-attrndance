@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getClubBySlug } from '@/lib/clubs';
 import { formatEventTimeRange } from '@/lib/format';
 import { Plus, Calendar, MapPin, ArrowRight } from 'lucide-react';
@@ -15,7 +15,7 @@ export default function EventsList() {
     (async () => {
       const c = await getClubBySlug(clubSlug);
       setClub(c);
-      if (c) setEvents(await base44.entities.Event.filter({ club_id: c.id }, '-starts_at', 500));
+      if (c) setEvents(await db.Event.filter({ club_id: c.id }, '-starts_at', 500));
     })();
   }, [clubSlug]);
 
