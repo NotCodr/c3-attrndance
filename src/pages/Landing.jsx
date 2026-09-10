@@ -86,7 +86,7 @@ export default function Landing() {
             {[
               { icon: ScanLine, title: 'QR check-in', body: 'Students scan in at the door. Timestamps captured server-side, UMSU-compliant.', n: 1 },
               { icon: FileText, title: 'green sheet PDF', body: 'Auto-generated attendance with full name, student number, course, and arrival time.', n: 2 },
-              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance and a pre-filled AFP, combined into one PDF.', n: 3 },
+              { icon: Receipt, title: 'one-click grant pack', body: 'Photos, receipts, attendance and a pre-filled AFP, combined into one PDF.', n: 3 },
             ].map((c) => (
               <div key={c.title} className="c3-card p-7">
                 <div className="flex items-center justify-between mb-4">

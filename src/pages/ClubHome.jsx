@@ -77,7 +77,7 @@ export default function ClubHome() {
   // Grant money is released against an acquittal pack. Nothing in the app used
   // to say one was outstanding, which left the whole point of connect3 resting
   // on the treasurer remembering.
-  const needsAcquittal = packedEventIds === null ? [] : events.filter((e) =>
+  const needsGrantPack = packedEventIds === null ? [] : events.filter((e) =>
     e.is_grant_funded
     && e.status !== 'draft'
     && e.status !== 'cancelled'
@@ -96,17 +96,17 @@ export default function ClubHome() {
         </Link>
       </div>
 
-      {needsAcquittal.length > 0 && (
+      {needsGrantPack.length > 0 && (
         <section className="mb-10">
           <h2 className="text-sm mb-3 flex items-center gap-2 text-amber-500">
-            <FileText className="w-4 h-4" /> needs an acquittal pack
-            <span className="text-xs">({needsAcquittal.length})</span>
+            <FileText className="w-4 h-4" /> needs a grant pack
+            <span className="text-xs">({needsGrantPack.length})</span>
           </h2>
           <div className="space-y-2">
-            {needsAcquittal.map((e) => (
+            {needsGrantPack.map((e) => (
               <Link
                 key={e.id}
-                to={`/c/${clubSlug}/events/${e.id}/acquittal`}
+                to={`/c/${clubSlug}/events/${e.id}/grant`}
                 className="block c3-card p-4 border-amber-400/40 bg-amber-400/5 hover:bg-amber-400/10 transition"
               >
                 <div className="flex items-start justify-between gap-3">
@@ -170,7 +170,7 @@ function FirstRun({ clubSlug, clubName, slug }) {
       <h2 className="font-display font-bold text-xl mb-2">{clubName} is set up</h2>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
         Create your first event, share the RSVP link, then scan people in at the door.
-        If it is grant funded, connect3 builds the acquittal pack for you afterwards.
+        If it is grant funded, connect3 builds the grant pack for you afterwards.
       </p>
       <div className="flex items-center justify-center gap-2 flex-wrap">
         <Link to={`/c/${clubSlug}/events/new`} className="c3-btn-primary">

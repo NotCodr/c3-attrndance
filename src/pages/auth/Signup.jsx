@@ -36,7 +36,7 @@ export default function Signup() {
   return (
     <AuthLayout
       title="start running your club"
-      subtitle="events, attendance and grant acquittals in one place"
+      subtitle="events, attendance and grants in one place"
       footer={<>already have an account? <Link to="/login" className="text-primary hover:underline">sign in</Link></>}
     >
       <form onSubmit={submit} className="space-y-4">

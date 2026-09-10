@@ -26,10 +26,14 @@ export default function AcquittalPacks() {
 
   return (
     <div>
-      <h1 className="text-2xl font-medium mb-1">acquittal packs</h1>
-      <p className="text-sm text-muted-foreground mb-6">All packs generated for {club.name}.</p>
+      <h1 className="font-display font-bold text-3xl mb-1">grants</h1>
+      <p className="text-sm text-muted-foreground mb-6">Every grant pack generated for {club.name}.</p>
 
-      {packs.length === 0 && <p className="text-sm text-muted-foreground italic">No packs yet.</p>}
+      {packs.length === 0 && (
+        <p className="text-sm text-muted-foreground italic">
+          No grant packs yet. They are built from a completed grant-funded event.
+        </p>
+      )}
       <div className="space-y-2">
         {packs.map((p) => {
           const e = eventById(p.event_id);
@@ -44,7 +48,7 @@ export default function AcquittalPacks() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {e && <Link to={`/c/${clubSlug}/events/${e.id}/acquittal`} className="c3-btn-ghost text-xs">manage</Link>}
+                {e && <Link to={`/c/${clubSlug}/events/${e.id}/grant`} className="c3-btn-ghost text-xs">manage</Link>}
                 <a href={p.pdf_url} target="_blank" rel="noreferrer" className="c3-btn-secondary text-xs"><FileText className="w-3.5 h-3.5" /> open</a>
               </div>
             </div>

@@ -147,9 +147,9 @@ export default function EventDetail() {
           </Link>
         )}
         {canManageAcquittal(role) && (
-          <Link to={`/c/${clubSlug}/events/${event.id}/acquittal`} className="c3-card p-4 hover:bg-secondary/30 transition">
+          <Link to={`/c/${clubSlug}/events/${event.id}/grant`} className="c3-card p-4 hover:bg-secondary/30 transition">
             <FileText className="w-5 h-5 text-primary mb-2" />
-            <p className="font-medium text-sm">acquittal pack</p>
+            <p className="font-medium text-sm">grant pack</p>
             <p className="text-xs text-muted-foreground mt-0.5">{event.is_grant_funded ? 'photos, receipts, AFP' : 'photos & report'}</p>
           </Link>
         )}

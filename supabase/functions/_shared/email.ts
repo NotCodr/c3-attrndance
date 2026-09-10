@@ -117,7 +117,7 @@ export function eventSummaryEmail(v: {
         ${row("Receipts", v.receipts + " &middot; " + money(v.totalCents))}
         ${v.grantCategory ? row("Grant category", v.grantCategory) : ""}
       </table>
-      ${v.grantCategory ? `<p style="font-size:13px;color:#6b6b76;margin:24px 0 0">This event was grant funded, so an acquittal pack is due to ${v.unionName || "your union"}.</p>` : ""}
+      ${v.grantCategory ? `<p style="font-size:13px;color:#6b6b76;margin:24px 0 0">This event was grant funded, so a grant pack is due to ${v.unionName || "your union"}.</p>` : ""}
     `),
   };
 }
@@ -195,7 +195,7 @@ export function committeeInviteEmail(v: {
     subject: v.invitedBy + " added you to " + v.clubName + " on connect3",
     html: SHELL(`
       <p style="font-size:15px;margin:0 0 8px"><strong>${v.invitedBy}</strong> added you to <strong>${v.clubName}</strong> as <strong>${v.role}</strong>.</p>
-      <p style="font-size:13px;color:#6b6b76;margin:0 0 20px">connect3 runs the club's events, door check-in and grant acquittals.</p>
+      <p style="font-size:13px;color:#6b6b76;margin:0 0 20px">connect3 runs the club's events, door check-in and grants.</p>
       ${button(v.signInUrl, v.isNewUser ? "Create your account" : "Sign in")}
       <p style="font-size:12px;color:#6b6b76;margin:0">
         ${v.isNewUser

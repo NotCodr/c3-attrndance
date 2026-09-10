@@ -17,7 +17,7 @@ function clubNav(clubSlug) {
     { to: `/c/${clubSlug}`, icon: CalendarDays, label: 'overview', end: true },
     { to: `/c/${clubSlug}/events`, icon: Calendar, label: 'events' },
     { to: `/c/${clubSlug}/analytics`, icon: BarChart3, label: 'analytics' },
-    { to: `/c/${clubSlug}/acquittal-packs`, icon: FileText, label: 'acquittal packs' },
+    { to: `/c/${clubSlug}/grants`, icon: FileText, label: 'grants' },
     { to: `/c/${clubSlug}/committee`, icon: Users, label: 'committee' },
     { to: `/c/${clubSlug}/settings`, icon: Settings, label: 'settings' },
   ];

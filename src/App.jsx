@@ -96,10 +96,10 @@ function AppRoutes() {
         <Route path="/c/:clubSlug/events/:eventId/edit" element={<EventEdit />} />
         <Route path="/c/:clubSlug/events/:eventId" element={<EventDetail />} />
         <Route path="/c/:clubSlug/events/:eventId/scan" element={<EventScan />} />
-        <Route path="/c/:clubSlug/events/:eventId/acquittal" element={<EventAcquittal />} />
+        <Route path="/c/:clubSlug/events/:eventId/grant" element={<EventAcquittal />} />
         <Route path="/c/:clubSlug/committee" element={<Committee />} />
         <Route path="/c/:clubSlug/settings" element={<ClubSettings />} />
-        <Route path="/c/:clubSlug/acquittal-packs" element={<AcquittalPacks />} />
+        <Route path="/c/:clubSlug/grants" element={<AcquittalPacks />} />
         <Route path="/c/:clubSlug/analytics" element={<Analytics />} />
       </Route>
 

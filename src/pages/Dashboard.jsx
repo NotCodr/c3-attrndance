@@ -38,7 +38,7 @@ export default function Dashboard() {
         <p className="text-sm font-medium text-primary uppercase tracking-wider">your clubs</p>
       </div>
       <h1 className="font-display font-bold text-4xl mb-2">pick a club to manage</h1>
-      <p className="text-muted-foreground mb-8">jump into events, attendance, and acquittals.</p>
+      <p className="text-muted-foreground mb-8">jump into events, attendance and grants.</p>
       <div className="space-y-3">
         {clubs.map((c) => (
           <Link key={c.id} to={`/c/${c.slug}`} className="block c3-card p-5 hover:-translate-y-0.5 transition-transform">

@@ -129,7 +129,7 @@ export default function EventAcquittal() {
     downloadBlob(bytes, `acquittal-${club.slug}-${event.starts_at.slice(0, 10)}-v${version}.pdf`);
     setGenerating(false);
     reload();
-    toast.success(`Acquittal pack v${version} generated`);
+    toast.success(`Grant pack v${version} generated`);
   };
 
   const markSubmitted = async (pack) => {
@@ -141,7 +141,7 @@ export default function EventAcquittal() {
   return (
     <div>
       <Link to={`/c/${clubSlug}/events/${event.id}`} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1"><ArrowLeft className="w-3.5 h-3.5" /> back to event</Link>
-      <h1 className="text-2xl font-medium mt-3 mb-1">acquittal pack</h1>
+      <h1 className="font-display font-bold text-3xl mt-3 mb-1">grant pack</h1>
       <p className="text-sm text-muted-foreground mb-6">{event.title} · {formatDate(event.starts_at)}</p>
 
       {/* Checklist */}
@@ -261,7 +261,7 @@ export default function EventAcquittal() {
       {/* Generate */}
       <div className="c3-card p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <p className="font-medium">{event.is_grant_funded ? 'Generate acquittal pack' : 'Generate event report'}</p>
+          <p className="font-medium">{event.is_grant_funded ? 'Generate grant pack' : 'Generate event report'}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{event.is_grant_funded ? 'Cover + AFP + attendance + photos + receipts' : 'Cover + attendance + photos'}</p>
         </div>
         <button onClick={generate} disabled={!canGenerate || generating} className="c3-btn-primary">
