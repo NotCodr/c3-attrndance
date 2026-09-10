@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Connect3 — playful light theme */
+    /* Connect3 playful light theme */
     --background: 250 60% 96%;         /* soft lavender cream */
     --foreground: 249 45% 12%;         /* deep ink #15102B */
     --card: 0 0% 100%;
@@ -116,9 +116,6 @@
   }
   .c3-badge {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-foreground border border-border;
-  }
-  .c3-chip-purple {
-    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/15 text-primary border border-primary/30;
   }
   .font-display { font-family: var(--font-display); }
 }

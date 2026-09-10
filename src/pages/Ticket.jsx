@@ -140,7 +140,7 @@ function StatusCard({ rsvp, qr, ended, eventCancelled }) {
       <Notice
         icon={Clock}
         title="You're on the waitlist"
-        note="The event is full. We'll email you if a place opens up — keep this link."
+        note="The event is full. We'll email you if a place opens up, so keep this link."
       />
     );
   }

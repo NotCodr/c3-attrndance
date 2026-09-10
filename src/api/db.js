@@ -52,7 +52,7 @@ function entityClient(entity) {
 
 export const db = Object.fromEntries(ENTITIES.map((e) => [e, entityClient(e)]));
 
-/** Submit a public RSVP. Unauthenticated by design — attendees are not users. */
+/** Submit a public RSVP. Unauthenticated by design: attendees are not users. */
 export function submitRsvp(payload) {
   return api.call('rsvp-submit', payload, { auth: false });
 }

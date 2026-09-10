@@ -100,7 +100,7 @@ export default function PublicRSVP() {
     return <StatusPage title={event.title} club={club} note="This event has already ended." />;
   }
   if (event.rsvp_required === false) {
-    return <StatusPage title={event.title} club={club} note="Walk-ins only — no RSVP needed. Just turn up." />;
+    return <StatusPage title={event.title} club={club} note="Walk-ins only. No RSVP needed, just turn up." />;
   }
 
   const whenText = formatEventTimeRange(event.starts_at, event.ends_at);

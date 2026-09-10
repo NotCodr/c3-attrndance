@@ -87,7 +87,7 @@ export default function Explore() {
             <div className="space-y-2 mb-10">
               {visibleEvents.length === 0 && (
                 <p className="text-sm text-muted-foreground italic">
-                  {term ? 'Nothing matches that search.' : 'No upcoming events just yet — check back soon.'}
+                  {term ? 'Nothing matches that search.' : 'No upcoming events just yet. Check back soon.'}
                 </p>
               )}
               {visibleEvents.map((e) => (

@@ -3,7 +3,7 @@
 export const MEL_TZ = 'Australia/Melbourne';
 
 export function formatMoneyCents(cents) {
-  if (cents == null) return '—';
+  if (cents == null) return '-';
   return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(cents / 100);
 }
 

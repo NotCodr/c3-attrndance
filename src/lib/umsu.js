@@ -1,4 +1,4 @@
-// UMSU compliance rules — hardcoded per spec section 8.
+// UMSU compliance rules, hardcoded per spec section 8.
 
 export const UMSU_RULES = {
   required_attendance_fields_for_grant_funded: [

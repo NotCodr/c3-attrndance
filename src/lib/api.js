@@ -3,7 +3,7 @@
 // Talks to our own backend on Supabase Edge Functions. Sessions are ours, so
 // requests carry our bearer token; nothing here depends on Supabase Auth, and
 // the anon key is sent only because the Functions gateway expects it for
-// routing. That key is public by design and grants nothing on its own — every
+// routing. That key is public by design and grants nothing on its own: every
 // table is deny-by-default and the API holds the only key that reads them.
 
 const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -11,7 +11,7 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const TOKEN_KEY = 'c3_session_token';
 
 if (!API_URL && import.meta.env.DEV) {
-  console.error('[connect3] VITE_API_URL is not set — see .env.example');
+  console.error('[connect3] VITE_API_URL is not set. See .env.example');
 }
 
 let cachedToken = null;

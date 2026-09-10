@@ -67,7 +67,7 @@ export default function ClubSettings() {
     try {
       const { file_url } = await api.upload(f, club.id);
       setForm((prev) => ({ ...prev, logo_url: file_url }));
-      toast.success('Logo uploaded — remember to save.');
+      toast.success('Logo uploaded. Remember to save.');
     } catch (err) {
       toast.error(err.message || 'Could not upload that image.');
     } finally {

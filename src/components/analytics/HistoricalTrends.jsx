@@ -34,7 +34,7 @@ export default function HistoricalTrends({ events, rsvpByEvent, checkInByEvent }
   }
 
   return (
-    <ChartCard title="event history" subtitle={`last ${data.length} event${data.length === 1 ? '' : 's'} — rsvps vs check-ins`}>
+    <ChartCard title="event history" subtitle={`last ${data.length} event${data.length === 1 ? '' : 's'}, rsvps vs check-ins`}>
       <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ left: -10, right: 8, top: 6, bottom: 0 }}>

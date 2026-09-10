@@ -25,7 +25,7 @@ export default function Login() {
       await login(email, password);
       navigate(next, { replace: true });
     } catch (err) {
-      // An unverified account isn't a failure, it's an unfinished signup —
+      // An unverified account isn't a failure, it's an unfinished signup, so
       // send them to the step they never completed rather than a dead end.
       if (err.code === 'email_not_verified') {
         navigate('/verify', { state: { email: err.email || email } });

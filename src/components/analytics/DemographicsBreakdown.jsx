@@ -25,7 +25,7 @@ function bucket(arr, accessor, fallback = 'unknown') {
 export default function DemographicsBreakdown({ attendees }) {
   const { membership, courses } = useMemo(() => {
     const m = bucket(attendees, (r) => (r.is_member ? 'members' : 'non-members'));
-    let c = bucket(attendees, (r) => r.course, '—');
+    let c = bucket(attendees, (r) => r.course, '-');
     // Cap at top 5; collapse the rest into "other"
     if (c.length > 5) {
       const top = c.slice(0, 5);

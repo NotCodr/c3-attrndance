@@ -36,7 +36,7 @@ browser ──► /api/data ──► policy.ts ──► Postgres (service role
 
 Postgres RLS cannot express this model directly, because connect3 issues its own
 identities rather than using Supabase Auth, so `auth.uid()` is always null. The
-policy layer is therefore the whole permission model — and it is unit tested.
+policy layer is therefore the whole permission model, and it is unit tested.
 
 `src/lib/clubs.js` has a mirror of the role ladder. It only decides which buttons
 to draw; a client can lie about it freely, so nothing is ever authorised from it.
@@ -149,6 +149,6 @@ nothing on its own; the Functions gateway just wants it for routing.
 
 ## Deploying the frontend
 
-Any static host — Vercel, Netlify, Cloudflare Pages. Build command `npm run
+Any static host: Vercel, Netlify, Cloudflare Pages. Build command `npm run
 build`, output `dist`. Set `VITE_API_URL` and `VITE_SUPABASE_ANON_KEY` in the
 host's environment, and add the site's origin to `ALLOWED_ORIGINS` on the API.

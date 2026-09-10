@@ -10,8 +10,8 @@ export function ok(data: unknown, status = 200): Response {
  * An error response.
  *
  * `code` is a stable machine-readable string the frontend switches on; `message`
- * is shown to the user. Never put internal detail in either — these cross the
- * trust boundary.
+ * is shown to the user. Never put internal detail in either, since these cross
+ * the trust boundary.
  */
 export function fail(status: number, code: string, message: string, extra: Record<string, unknown> = {}): Response {
   return new Response(JSON.stringify({ error: code, message, ...extra }), { status, headers: JSON_HEADERS });
@@ -80,7 +80,7 @@ export function appOrigin(req: Request): string {
   return "http://localhost:5173";
 }
 
-/** Human-readable event time, always in Melbourne — the clubs are all there. */
+/** Human-readable event time, always in Melbourne, where the clubs all are. */
 export function formatEventWhen(startsAt: string, endsAt?: string | null): string {
   const start = new Date(startsAt);
   const date = start.toLocaleDateString("en-AU", {

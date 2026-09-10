@@ -31,9 +31,6 @@ export default function Landing() {
       <div className="relative">
         <Decorations variant="hero" />
         <Section className="relative pt-12 pb-32 text-center">
-          <div className="inline-block c3-chip-purple mb-6">
-            ✨ for university club committees
-          </div>
           <h1 className="font-display font-bold uppercase tracking-tight text-5xl md:text-7xl lg:text-8xl text-balance leading-[0.95]">
             it takes three<br />
             <span className="relative inline-block">
@@ -42,7 +39,7 @@ export default function Landing() {
             </span>
           </h1>
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-            find events, run clubs, file grants — all-in-one. Built for UniMelb clubs first.
+            find events, run clubs, file grants. all in one place, built for UniMelb clubs first.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
             <Link to={user ? '/dashboard' : '/signup'} className="c3-btn-primary text-base px-7 py-3.5">
@@ -89,7 +86,7 @@ export default function Landing() {
             {[
               { icon: ScanLine, title: 'QR check-in', body: 'Students scan in at the door. Timestamps captured server-side, UMSU-compliant.', n: 1 },
               { icon: FileText, title: 'green sheet PDF', body: 'Auto-generated attendance with full name, student number, course, and arrival time.', n: 2 },
-              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance, and a pre-filled AFP — combined into one PDF.', n: 3 },
+              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance and a pre-filled AFP, combined into one PDF.', n: 3 },
             ].map((c) => (
               <div key={c.title} className="c3-card p-7">
                 <div className="flex items-center justify-between mb-4">

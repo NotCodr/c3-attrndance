@@ -42,7 +42,7 @@ export default function EventsList() {
         {filtered.length === 0 && (
           <p className="text-sm text-muted-foreground italic">
             {events.length === 0
-              ? 'No events yet — create one to get started.'
+              ? 'No events yet. Create one to get started.'
               : `No ${filter === 'all' ? '' : filter + ' '}events.`}
           </p>
         )}

@@ -49,11 +49,11 @@ export default function Account() {
       <div className="c3-card p-5 space-y-3 text-sm mb-8">
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground">name</span>
-          <span className="truncate">{user?.full_name || '—'}</span>
+          <span className="truncate">{user?.full_name || '-'}</span>
         </div>
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground">email</span>
-          <span className="truncate">{user?.email || '—'}</span>
+          <span className="truncate">{user?.email || '-'}</span>
         </div>
       </div>
 

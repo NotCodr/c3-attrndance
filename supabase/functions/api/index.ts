@@ -4,7 +4,7 @@
 // deploys each function separately and each pays its own cold start, so a single
 // entry point keeps deploys atomic and the shared modules loaded once.
 //
-// verify_jwt is disabled for this function in config.toml. That is deliberate —
+// verify_jwt is disabled for this function in config.toml. That is deliberate:
 // connect3 issues its own sessions, so Supabase's JWT gate would reject every
 // legitimate caller. Authentication happens in resolveActor(), authorisation in
 // policy.ts, and both run before anything touches the database.
