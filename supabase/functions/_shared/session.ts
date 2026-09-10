@@ -68,10 +68,13 @@ export async function resolveActor(req: Request): Promise<Actor | null> {
   );
   if (!user || user.status === "disabled") return null;
 
+  // Equality, not ILIKE. Matching a membership by pattern would let an address
+  // containing "_" or "%" pick up another member's row, and with it their role
+  // in that club.
   const { data: memberships } = await supabase
     .from("club_memberships")
     .select("club_id,role")
-    .ilike("user_email", String(user.email));
+    .eq("user_email", String(user.email).toLowerCase());
 
   return { user, sessionId: session.id, memberships: (memberships || []) as Membership[] };
 }

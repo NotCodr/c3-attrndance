@@ -175,6 +175,11 @@ dataRoutes.post("/data", async (c) => {
       return c.json({ error: "forbidden", message: "You do not have permission to do that." }, 403);
     }
     if (entity === "AuditLog") data.actor_email = actor.user.email;
+    // Emails are compared with equality everywhere, so normalise on the way in
+    // rather than relying on the client to have done it.
+    for (const field of ["user_email", "email"]) {
+      if (typeof data[field] === "string") data[field] = data[field].trim().toLowerCase();
+    }
 
     const { data: created, error } = await supabase.from(table).insert(data).select().single();
     if (isUniqueViolation(error)) {

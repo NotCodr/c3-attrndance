@@ -25,7 +25,9 @@ const LOCKOUT_MIN = 15;
 export const authRoutes = new Hono();
 
 const findUser = (email: string) =>
-  one<AppUserRecord>(db().from("app_users").select("*").ilike("email", email).limit(1));
+  // Equality, not ILIKE: emails are normalised to lowercase by a database
+  // trigger, and ILIKE would treat "_" or "%" in an address as wildcards.
+  one<AppUserRecord>(db().from("app_users").select("*").eq("email", email).limit(1));
 
 function appOrigin(req: Request): string {
   const configured = Deno.env.get("APP_ORIGIN");

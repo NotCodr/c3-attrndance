@@ -66,7 +66,7 @@ publicRoutes.post("/rsvp-submit", async (c) => {
   };
 
   const { data: existing } = await supabase.from("rsvps")
-    .select("*").eq("event_id", event.id).ilike("email", email).maybeSingle();
+    .select("*").eq("event_id", event.id).eq("email", email).maybeSingle();
 
   if (existing) {
     const status = existing.status === "cancelled" ? await seatStatus() : existing.status;
@@ -85,7 +85,7 @@ publicRoutes.post("/rsvp-submit", async (c) => {
   // the loser. Return the existing row rather than an error.
   if (isUniqueViolation(error)) {
     const { data: row } = await supabase.from("rsvps")
-      .select("*").eq("event_id", event.id).ilike("email", email).maybeSingle();
+      .select("*").eq("event_id", event.id).eq("email", email).maybeSingle();
     return c.json({ ok: true, status: row?.status || "confirmed", rsvp_token: row?.rsvp_token, updated: true });
   }
   if (error) throw new Error(error.message);
