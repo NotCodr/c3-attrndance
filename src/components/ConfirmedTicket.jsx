@@ -18,7 +18,7 @@ import { Calendar, Clock, MapPin } from 'lucide-react';
 
 const EASE = [0.16, 1, 0.3, 1];
 
-export default function ConfirmedTicket({ status, email, qrDataUrl, ticketToken, event, whenText }) {
+export default function ConfirmedTicket({ status, email, qrDataUrl, ticketToken, event, club, whenText }) {
   const reduce = useReducedMotion();
   const waitlisted = status === 'waitlisted';
   const [ringGone, setRingGone] = useState(reduce);
@@ -57,6 +57,11 @@ export default function ConfirmedTicket({ status, email, qrDataUrl, ticketToken,
       <motion.h2 {...stagger(0)} className="font-display font-bold text-2xl sm:text-3xl mt-5 mb-1.5">
         {waitlisted ? "You're on the waitlist" : "You're going"}
       </motion.h2>
+
+      <motion.div {...stagger(0)} className="mb-1.5">
+        {club?.name && <p className="text-xs font-semibold text-primary tracking-wider uppercase">{club.name}</p>}
+        <p className="font-display font-bold text-lg text-balance">{event.title}</p>
+      </motion.div>
 
       <motion.p {...stagger(1)} className="text-sm text-muted-foreground max-w-xs mx-auto">
         {waitlisted
