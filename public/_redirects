@@ -1,0 +1,11 @@
+# Single-page app: every path is handled by the React router, so anything that
+# is not a real file has to be served index.html rather than a 404.
+#
+# This is not cosmetic here. The links people actually receive are all deep
+# links into the app: /ticket?t=... in confirmation emails, /rsvp/<id> shared
+# with students, /reset-password?token=... in recovery emails. Without this
+# rule every one of them 404s on a fresh visit, because no /ticket/index.html
+# exists on disk.
+#
+# Used by Netlify and Cloudflare Pages. Vercel reads vercel.json instead.
+/*  /index.html  200
