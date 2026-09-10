@@ -1,13 +1,18 @@
-// Transport for connect3's own backend.
+// Transport for the connect3 API.
 //
-// Deliberately does NOT use base44.functions.invoke: that attaches a Base44
-// session token, and connect3 no longer has one. Sessions are ours, so requests
-// carry our own bearer token and nothing here depends on Base44 identity.
+// Talks to our own backend on Supabase Edge Functions. Sessions are ours, so
+// requests carry our bearer token; nothing here depends on Supabase Auth, and
+// the anon key is sent only because the Functions gateway expects it for
+// routing. That key is public by design and grants nothing on its own — every
+// table is deny-by-default and the API holds the only key that reads them.
 
-import { appParams } from '@/lib/app-params';
-
-const FUNCTIONS_BASE = `/api/apps/${appParams.appId}/functions`;
+const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 const TOKEN_KEY = 'c3_session_token';
+
+if (!API_URL && import.meta.env.DEV) {
+  console.error('[connect3] VITE_API_URL is not set — see .env.example');
+}
 
 let cachedToken = null;
 
@@ -27,7 +32,7 @@ export function setToken(token) {
     if (token) localStorage.setItem(TOKEN_KEY, token);
     else localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // Session survives in memory for this tab even if storage is unavailable.
+    // The session still works in memory for this tab.
   }
 }
 
@@ -46,19 +51,20 @@ export class ApiError extends Error {
   }
 }
 
-async function request(path, { body, formData, auth = true } = {}) {
-  const headers = { 'X-App-Id': appParams.appId };
-  if (!formData) headers['Content-Type'] = 'application/json';
+async function request(path, { body, formData, auth = true, method = 'POST' } = {}) {
+  const headers = {};
+  if (ANON_KEY) headers.apikey = ANON_KEY;
+  if (!formData && body !== undefined) headers['Content-Type'] = 'application/json';
 
   const token = auth ? getToken() : null;
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let res;
   try {
-    res = await fetch(`${FUNCTIONS_BASE}${path}`, {
-      method: 'POST',
+    res = await fetch(`${API_URL}${path}`, {
+      method,
       headers,
-      body: formData || JSON.stringify(body || {}),
+      body: formData || (body === undefined ? undefined : JSON.stringify(body)),
     });
   } catch {
     throw new ApiError('Network error. Check your connection and try again.', 'network', 0);
@@ -74,19 +80,17 @@ async function request(path, { body, formData, auth = true } = {}) {
 
   if (!res.ok) {
     const { error, message, ...extra } = payload;
-    throw new ApiError(
-      message || 'Something went wrong.',
-      error || 'unknown',
-      res.status,
-      extra,
-    );
+    throw new ApiError(message || 'Something went wrong.', error || 'unknown', res.status, extra);
   }
   return payload;
 }
 
 export const api = {
-  /** POST a JSON body to a backend function. */
-  call: (name, body, opts) => request(`/${name}`, { body, ...opts }),
+  /** POST a JSON body to an API route. */
+  call: (path, body, opts) => request(`/${path}`, { body: body || {}, ...opts }),
+
+  /** GET an API route. */
+  get: (path, opts) => request(`/${path}`, { method: 'GET', ...opts }),
 
   /** Upload a file, returning its public URL. */
   async upload(file, clubId) {

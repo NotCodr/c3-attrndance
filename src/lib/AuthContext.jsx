@@ -23,7 +23,7 @@ export function AuthProvider({ children }) {
       return null;
     }
     try {
-      const { user: me, clubs: myClubs } = await api.call('auth/me');
+      const { user: me, clubs: myClubs } = await api.get('auth/me');
       setUser(me);
       setClubs(myClubs || []);
       return me;

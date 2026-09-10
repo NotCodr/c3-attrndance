@@ -2,7 +2,8 @@ import { db } from '@/api/db';
 
 // Club and membership lookups, plus the role ladder used to decide what the UI
 // offers. These checks are advisory only: the authoritative copy lives in
-// base44/shared/session.ts and runs on the server, where a client cannot reach it.
+// supabase/functions/_shared/policy.ts and runs on the server, where a client
+// cannot reach it.
 
 export async function listMyMemberships(userEmail) {
   if (!userEmail) return [];

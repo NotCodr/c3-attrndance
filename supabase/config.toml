@@ -1,0 +1,32 @@
+project_id = "connect3"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+# Supabase Auth is deliberately disabled. connect3 issues its own sessions from
+# app_users / app_sessions, so leaving GoTrue on would only add an unused,
+# publicly reachable auth surface.
+[auth]
+enabled = false
+
+[functions.api]
+# connect3 authenticates callers itself in resolveActor(), so Supabase's JWT gate
+# must be off or it would reject every legitimate request before our code runs.
+# Public endpoints (login, register, rsvp-submit) depend on this too.
+verify_jwt = false
