@@ -6,13 +6,21 @@
 // routing. That key is public by design and grants nothing on its own: every
 // table is deny-by-default and the API holds the only key that reads them.
 
-const API_URL = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const TOKEN_KEY = 'c3_session_token';
+// Production defaults, used whenever the build environment does not supply
+// its own. Both values are public by design: the API is a public endpoint, and
+// the publishable key ships inside every client bundle regardless. Neither
+// grants access to anything, because every table is deny-by-default.
+//
+// Without these, a build made before the Vercel variables were set produced an
+// app with an empty API base URL. Every request then went to the site's own
+// origin, landed on the SPA fallback instead of the API, and surfaced as a
+// generic "Something went wrong" with nothing to say why.
+const PRODUCTION_API_URL = 'https://egwvriiiiyrjusriauhr.supabase.co/functions/v1/api';
+const PRODUCTION_ANON_KEY = 'sb_publishable_KGlyAS-7iyzwodCO4-I-dw_VFPkP6VG';
 
-if (!API_URL && import.meta.env.DEV) {
-  console.error('[connect3] VITE_API_URL is not set. See .env.example');
-}
+const API_URL = (import.meta.env.VITE_API_URL || PRODUCTION_API_URL).replace(/\/$/, '');
+const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || PRODUCTION_ANON_KEY;
+const TOKEN_KEY = 'c3_session_token';
 
 let cachedToken = null;
 

@@ -21,15 +21,44 @@ const app = new Hono().basePath("/api");
 // Browsers send the session as an Authorization header from whatever origin the
 // site is served on. Restrict that to origins we actually publish; a wildcard
 // here would let any page on the internet drive a signed-in user's session.
-const allowed = (Deno.env.get("ALLOWED_ORIGINS") || "")
-  .split(",").map((s) => s.trim()).filter(Boolean);
+/**
+ * Reduces an origin to the exact form a browser sends: scheme, host, no path,
+ * no trailing slash, lowercase.
+ *
+ * Comparison used to be an exact string match, which meant an entry typed as
+ * "https://connect3.dev/" or plain "connect3.dev" silently matched nothing and
+ * blocked the whole site, with no error anywhere to say why. Normalising both
+ * sides makes those equivalent to what was meant.
+ */
+function normaliseOrigin(value: string): string | null {
+  const v = value.trim();
+  if (!v) return null;
+  try {
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(v) ? v : `https://${v}`;
+    return new URL(withScheme).origin.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+const allowed = new Set(
+  [
+    ...(Deno.env.get("ALLOWED_ORIGINS") || "").split(","),
+    // The site the emails link to is by definition a site that has to be able
+    // to call the API, so it never needs listing twice.
+    Deno.env.get("APP_ORIGIN") || "",
+  ]
+    .map(normaliseOrigin)
+    .filter((o): o is string => !!o),
+);
 
 app.use(
   "*",
   cors({
     origin: (origin) => {
       if (!origin) return undefined;              // same-origin / curl
-      if (allowed.includes(origin)) return origin;
+      const o = normaliseOrigin(origin);
+      if (o && allowed.has(o)) return origin;
       // Any localhost port, for development.
       if (/^http:\/\/localhost:\d+$/.test(origin)) return origin;
       return undefined;
