@@ -74,11 +74,16 @@ project URL, the `anon` key and the `service_role` key.
 Paste each file into the SQL editor, in order:
 
 ```
-supabase/migrations/0001_init.sql     tables, constraints, RLS lockdown
-supabase/migrations/0002_storage.sql  uploads bucket
+supabase/migrations/20260910000001_init.sql              tables, constraints, RLS lockdown
+supabase/migrations/20260910000002_storage.sql           uploads bucket
+supabase/migrations/20260910000003_normalise_emails.sql  lowercase email invariant
 ```
 
-Or, with the Supabase CLI: `supabase db push`.
+Or, with the Supabase CLI (no Docker needed):
+
+```bash
+npx supabase db push --project-ref <ref> -p <database password>
+```
 
 ### 3. Bring your data across (optional)
 
@@ -108,12 +113,13 @@ safe to re-run.
 ### 5. Deploy the API
 
 ```bash
-supabase functions deploy api --no-verify-jwt
+npx supabase functions deploy api --project-ref <ref> --no-verify-jwt --use-api
 ```
 
-`--no-verify-jwt` is required. connect3 authenticates callers itself, so
+`--no-verify-jwt` is required: connect3 authenticates callers itself, so
 Supabase's JWT gate would reject every legitimate request, and the public
 endpoints (login, register, rsvp-submit) would stop working entirely.
+`--use-api` bundles server-side so Docker is not required.
 
 ### 6. Point the frontend at it
 
