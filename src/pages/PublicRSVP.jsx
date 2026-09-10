@@ -9,6 +9,7 @@ import { formatEventTimeRange } from '@/lib/format';
 import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
 import AnimatedBackdrop from '@/components/AnimatedBackdrop';
 import ConfirmedTicket from '@/components/ConfirmedTicket';
+import FluidCelebration from '@/components/fluid/FluidCelebration';
 import RsvpButton from '@/components/RsvpButton';
 import { AlertTriangle, CalendarDays, Loader2, Lock, MapPin, Users } from 'lucide-react';
 
@@ -112,6 +113,13 @@ export default function PublicRSVP() {
   return (
     <div className="min-h-screen">
       <AnimatedBackdrop />
+
+      {/* The fluid only exists once someone has actually RSVPed. Running a
+          WebGL simulation behind the form would be noise on the screen where
+          they are trying to type, and would cost battery for nothing. It sits
+          above the static backdrop and below the content, so it swirls around
+          the ticket rather than over it. */}
+      {confirmed && <FluidCelebration className="-z-[5]" />}
 
       <div className="max-w-xl mx-auto px-5 pt-10 pb-20 sm:pt-16">
         <motion.div {...fade(0)} className="mb-8">
