@@ -56,8 +56,8 @@ export default function Onboard() {
     const u = UNIVERSITY_OPTIONS.find((o) => o.slug === university);
     try {
       // Slug uniqueness and the founder's owner membership are both handled by
-      // the backend, in the same call that creates the club — a club can never
-      // end up existing without an owner.
+      // the backend, in the same call that creates the club, so a club can
+      // never end up existing without an owner.
       const club = await db.Club.create({
         name: name.trim(),
         slug,
@@ -183,7 +183,7 @@ export default function Onboard() {
 
       {step === 3 && (
         <div className="c3-card p-6 space-y-4">
-          <p className="text-sm">Invite committee members. Optional — you can add them later.</p>
+          <p className="text-sm">Invite committee members. You can also add them later.</p>
           {invites.map((inv, i) => (
             <div key={i} className="flex gap-2">
               <input

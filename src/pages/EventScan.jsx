@@ -96,7 +96,7 @@ export default function EventScan() {
     try {
       const result = await recordCheckIn({ event_id: event.id, ...payload });
       if (result.duplicate) {
-        flash('warn', `${result.full_name} — already checked in at ${formatTime(result.checked_in_at)}`);
+        flash('warn', `${result.full_name} already checked in at ${formatTime(result.checked_in_at)}`);
         return result;
       }
       if (navigator.vibrate) navigator.vibrate(60);

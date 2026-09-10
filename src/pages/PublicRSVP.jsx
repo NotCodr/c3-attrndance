@@ -1,15 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { motion, useReducedMotion } from 'motion/react';
+import QRCode from 'qrcode';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { db, submitRsvp } from '@/api/db';
 import { formatEventTimeRange } from '@/lib/format';
 import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
-import { Loader2, MapPin, Calendar, CheckCircle2, Lock, AlertTriangle } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import QRCode from 'qrcode';
+import AnimatedBackdrop from '@/components/AnimatedBackdrop';
+import ShaderBackground from '@/components/ui/shader-background';
+import ConfirmedTicket from '@/components/ConfirmedTicket';
+import RsvpButton from '@/components/RsvpButton';
+import { AlertTriangle, CalendarDays, Loader2, Lock, MapPin, Users } from 'lucide-react';
+
+const EASE = [0.16, 1, 0.3, 1];
 
 export default function PublicRSVP() {
   const { eventId } = useParams();
+  const reduce = useReducedMotion();
+
   const [event, setEvent] = useState(null);
   const [club, setClub] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -62,17 +71,13 @@ export default function PublicRSVP() {
         website, // honeypot; the server decides what to do with it
       });
 
-      setConfirmed({ status: result.status, email: lcEmail });
+      setConfirmed({ status: result.status, email: lcEmail, rsvp_token: result.rsvp_token });
 
       if (result.status === 'confirmed' && result.rsvp_token) {
         const url = `${window.location.origin}/rsvp/${event.id}#token=${result.rsvp_token}`;
-        setQrDataUrl(
-          await QRCode.toDataURL(url, {
-            width: 280,
-            margin: 1,
-            color: { dark: '#0A0A0F', light: '#FFFFFF' },
-          }),
-        );
+        setQrDataUrl(await QRCode.toDataURL(url, {
+          width: 320, margin: 1, color: { dark: '#0A0A0F', light: '#FFFFFF' },
+        }));
       }
     } catch (err) {
       setError(err.message || 'Could not submit your RSVP. Please try again.');
@@ -81,133 +86,232 @@ export default function PublicRSVP() {
     }
   };
 
-  if (loading) return <Centered><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></Centered>;
-  if (notFound) return <Centered><p className="text-muted-foreground">Event not found.</p></Centered>;
-  if (event.status === 'cancelled') return <StatusPage title={event.title} club={club} note="This event was cancelled." reason={event.cancellation_reason} />;
-  if (event.status === 'draft') return <StatusPage title="" club={club} note="This event isn't published yet." />;
-  if (new Date(event.ends_at) < new Date()) return <StatusPage title={event.title} club={club} note="This event has ended." />;
-  if (event.rsvp_required === false) return <StatusPage title={event.title} club={club} note="Walk-ins only — no RSVP required." />;
+  if (loading) {
+    return <Centered><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></Centered>;
+  }
+  if (notFound) return <StatusPage note="We could not find that event." />;
+  if (event.status === 'cancelled') {
+    return <StatusPage title={event.title} club={club} note="This event was cancelled." reason={event.cancellation_reason} />;
+  }
+  if (event.status === 'draft') {
+    return <StatusPage club={club} note="This event has not been published yet." />;
+  }
+  if (new Date(event.ends_at) < new Date()) {
+    return <StatusPage title={event.title} club={club} note="This event has already ended." />;
+  }
+  if (event.rsvp_required === false) {
+    return <StatusPage title={event.title} club={club} note="Walk-ins only. No RSVP needed, just turn up." />;
+  }
+
+  const whenText = formatEventTimeRange(event.starts_at, event.ends_at);
+
+  if (confirmed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-5 py-12">
+        <ShaderBackground />
+        <div className="w-full max-w-md">
+          <ConfirmedTicket
+            status={confirmed.status}
+            email={confirmed.email}
+            ticketToken={confirmed.rsvp_token}
+            qrDataUrl={qrDataUrl}
+            event={event}
+            club={club}
+            whenText={whenText}
+          />
+          <p className="text-center text-xs text-white/60 mt-6">
+            <a href="/explore" className="hover:text-white transition-colors">more events on connect3</a>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const fade = (i) => ({
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 18 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.55, delay: reduce ? 0 : i * 0.08, ease: EASE },
+  });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-xl mx-auto px-4 py-8">
-        {/* Header */}
-        {event.cover_image_url && <img src={event.cover_image_url} alt="" className="w-full aspect-video rounded-xl object-cover mb-6 border border-border" />}
-        <p className="text-xs text-primary tracking-wider uppercase">{club?.name}</p>
-        <h1 className="text-3xl font-medium mt-1 mb-4 text-balance">{event.title}</h1>
+    <div className="min-h-screen">
+      <AnimatedBackdrop />
 
-        <div className="space-y-2 mb-6 text-sm">
-          <p className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /> {formatEventTimeRange(event.starts_at, event.ends_at)}</p>
-          <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /> {event.location_name}</p>
-        </div>
+      <div className="max-w-xl mx-auto px-5 pt-10 pb-20 sm:pt-16">
+        <motion.div {...fade(0)} className="mb-8">
+          {event.cover_image_url && (
+            <img
+              src={event.cover_image_url}
+              alt=""
+              className="w-full aspect-[16/9] rounded-2xl object-cover mb-7 border border-border/60 shadow-xl shadow-black/5"
+            />
+          )}
+
+          <div className="flex items-center gap-2 mb-3">
+            {club?.logo_url && (
+              <img src={club.logo_url} alt="" className="w-6 h-6 rounded-md object-cover border border-border" />
+            )}
+            <p className="text-xs font-semibold text-primary tracking-wider uppercase">{club?.name}</p>
+          </div>
+
+          <h1 className="font-display font-bold text-4xl sm:text-5xl leading-[1.05] text-balance">
+            {event.title}
+          </h1>
+        </motion.div>
+
+        {/* Facts as chips rather than a wall of lines */}
+        <motion.div {...fade(1)} className="flex flex-wrap gap-2 mb-8">
+          <Chip icon={CalendarDays}>{whenText}</Chip>
+          <Chip icon={MapPin}>{event.location_name}</Chip>
+          {event.capacity ? <Chip icon={Users}>{event.capacity} places</Chip> : null}
+        </motion.div>
 
         {event.description && (
-          <div className="prose prose-invert prose-sm max-w-none mb-8 text-muted-foreground">
+          <motion.div
+            {...fade(2)}
+            className="prose prose-sm max-w-none mb-10 text-muted-foreground prose-headings:text-foreground prose-headings:font-display prose-a:text-primary prose-strong:text-foreground"
+          >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.description}</ReactMarkdown>
-          </div>
+          </motion.div>
         )}
 
-        {/* Form or confirmation */}
-        {confirmed ? (
-          <div className="c3-card p-6 text-center">
-            <CheckCircle2 className="w-10 h-10 text-primary mx-auto mb-3" />
-            <h2 className="text-xl font-medium mb-1">
-              {confirmed.status === 'waitlisted' ? "You're on the waitlist" : "You're going"}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-5">
-              {confirmed.status === 'waitlisted'
-                ? "We'll email you if a spot opens up."
-                : 'Save this QR code — scan it at the door.'}
+        <motion.form {...fade(3)} onSubmit={submit} className="c3-card p-6 sm:p-7">
+            <h2 className="font-display font-bold text-xl mb-1">Save your place</h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              Takes a few seconds. We will email you a code for the door.
             </p>
-            {qrDataUrl && confirmed.status === 'confirmed' && (
-              <div className="inline-block bg-white p-3 rounded-lg">
-                <img src={qrDataUrl} alt="check-in QR code" className="w-56 h-56" />
-              </div>
-            )}
-            <p className="mt-5 text-xs text-muted-foreground">Confirmation sent to <span className="text-foreground">{confirmed.email}</span></p>
-          </div>
-        ) : (
-          <form onSubmit={submit} className="c3-card p-6 space-y-4">
+
             {error && (
-              <p role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
+              <motion.p
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                role="alert"
+                className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2 mb-5"
+              >
                 {error}
-              </p>
-            )}
-            <div>
-              <label className="c3-label">full name</label>
-              <input className="c3-input" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={100} />
-            </div>
-            <div>
-              <label className="c3-label">email</label>
-              <input type="email" className="c3-input" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            </div>
-
-            {event.is_grant_funded && (
-              <>
-                <div className="flex gap-2 p-3 rounded-lg bg-secondary border border-border text-xs">
-                  <Lock className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-                  <p className="text-muted-foreground">Your details are collected for {club?.union_name || 'the student union'}'s grant attendance record and stored securely. See our <a href="/privacy" className="underline">privacy policy</a>.</p>
-                </div>
-                <div>
-                  <label className="c3-label">student number</label>
-                  <input className="c3-input" value={studentNumber} onChange={(e) => setStudentNumber(e.target.value)} required pattern="[A-Za-z0-9]{4,12}" placeholder="1234567" />
-                </div>
-                <div>
-                  <label className="c3-label">course</label>
-                  <input className="c3-input" value={course} onChange={(e) => setCourse(e.target.value)} required placeholder="Bachelor of Science" />
-                </div>
-                <div>
-                  <label className="c3-label">university</label>
-                  <select className="c3-input" value={university} onChange={(e) => setUniversity(e.target.value)}>
-                    {UNIVERSITY_OPTIONS.map((u) => <option key={u.slug} value={u.slug}>{u.name}</option>)}
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-              </>
+              </motion.p>
             )}
 
-            {event.collect_dietary && (
-              <div>
-                <label className="c3-label">dietary requirements (optional)</label>
-                <input className="c3-input" value={dietary} onChange={(e) => setDietary(e.target.value)} />
+            <div className="space-y-5">
+              <Field label="full name" htmlFor="rsvp-name">
+                <input id="rsvp-name" className="c3-input" required maxLength={100} autoComplete="name"
+                  value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              </Field>
+
+              <Field label="email" htmlFor="rsvp-email" hint="Your ticket goes here.">
+                <input id="rsvp-email" type="email" className="c3-input" required autoComplete="email"
+                  value={email} onChange={(e) => setEmail(e.target.value)} />
+              </Field>
+
+              {event.is_grant_funded && (
+                <div className="space-y-5 pt-1">
+                  <div className="flex gap-2.5 p-3.5 rounded-xl bg-secondary/70 border border-border text-xs">
+                    <Lock className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    <p className="text-muted-foreground leading-relaxed">
+                      This event is funded by {club?.union_name || 'the student union'}, so they require these
+                      details on the attendance record. Stored securely, see our{' '}
+                      <a href="/privacy" className="underline hover:text-foreground">privacy policy</a>.
+                    </p>
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-5">
+                    <Field label="student number" htmlFor="rsvp-sid">
+                      <input id="rsvp-sid" className="c3-input" required pattern="[A-Za-z0-9]{4,12}" placeholder="1234567"
+                        value={studentNumber} onChange={(e) => setStudentNumber(e.target.value)} />
+                    </Field>
+                    <Field label="course" htmlFor="rsvp-course">
+                      <input id="rsvp-course" className="c3-input" required placeholder="Bachelor of Science"
+                        value={course} onChange={(e) => setCourse(e.target.value)} />
+                    </Field>
+                  </div>
+
+                  <Field label="university" htmlFor="rsvp-uni">
+                    <select id="rsvp-uni" className="c3-input" value={university} onChange={(e) => setUniversity(e.target.value)}>
+                      {UNIVERSITY_OPTIONS.map((u) => <option key={u.slug} value={u.slug}>{u.name}</option>)}
+                      <option value="other">Other</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
+
+              {event.collect_dietary && (
+                <Field label="dietary requirements" htmlFor="rsvp-diet" optional>
+                  <input id="rsvp-diet" className="c3-input" placeholder="Vegetarian, allergies, anything we should know"
+                    value={dietary} onChange={(e) => setDietary(e.target.value)} />
+                </Field>
+              )}
+              {event.collect_accessibility && (
+                <Field label="accessibility requirements" htmlFor="rsvp-access" optional>
+                  <input id="rsvp-access" className="c3-input" placeholder="Anything that would help you take part"
+                    value={accessibility} onChange={(e) => setAccessibility(e.target.value)} />
+                </Field>
+              )}
+
+              <input type="text" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden"
+                value={website} onChange={(e) => setWebsite(e.target.value)} />
+
+              <div className="pt-2">
+                <RsvpButton submitting={submitting} />
               </div>
-            )}
-            {event.collect_accessibility && (
-              <div>
-                <label className="c3-label">accessibility requirements (optional)</label>
-                <input className="c3-input" value={accessibility} onChange={(e) => setAccessibility(e.target.value)} />
-              </div>
-            )}
+            </div>
+          </motion.form>
 
-            {/* Honeypot */}
-            <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} className="hidden" aria-hidden="true" />
-
-            <button disabled={submitting} className="c3-btn-primary w-full py-3 text-base">
-              {submitting && <Loader2 className="w-4 h-4 animate-spin" />} RSVP
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-xs text-muted-foreground mt-8">Powered by connect3</p>
+        <motion.p {...fade(4)} className="text-center text-xs text-muted-foreground mt-10">
+          <a href="/explore" className="hover:text-foreground transition-colors">more events on connect3</a>
+        </motion.p>
       </div>
     </div>
   );
 }
 
+function Field({ label, htmlFor, hint, optional, children }) {
+  return (
+    <div>
+      <label className="c3-label flex items-baseline gap-2" htmlFor={htmlFor}>
+        {label}
+        {optional && <span className="text-[10px] normal-case tracking-normal opacity-60">optional</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-muted-foreground mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
+function Chip({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-card/80 backdrop-blur border border-border">
+      <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
+      {children}
+    </span>
+  );
+}
+
 function Centered({ children }) {
-  return <div className="min-h-screen bg-background flex items-center justify-center px-6">{children}</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <AnimatedBackdrop />
+      {children}
+    </div>
+  );
 }
 
 function StatusPage({ title, club, note, reason }) {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="max-w-md text-center">
-        <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-        {title && <h1 className="text-xl font-medium mb-1">{title}</h1>}
+    <div className="min-h-screen flex items-center justify-center px-6">
+      <AnimatedBackdrop />
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: EASE }}
+        className="c3-card p-8 max-w-sm text-center"
+      >
+        <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
+        {title && <h1 className="font-display font-bold text-xl mb-1">{title}</h1>}
         {club && <p className="text-xs text-muted-foreground mb-4">{club.name}</p>}
         <p className="text-sm text-muted-foreground">{note}</p>
         {reason && <p className="text-xs text-muted-foreground mt-3 italic">{reason}</p>}
-      </div>
+        <a href="/explore" className="c3-btn-secondary text-xs mt-6">find other events</a>
+      </motion.div>
     </div>
   );
 }

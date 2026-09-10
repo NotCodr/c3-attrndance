@@ -1,11 +1,11 @@
-// Entity access, shaped like the Base44 SDK it replaces.
+// Entity access.
 //
-// Every call goes through the `data` backend function, which applies the club
-// role policy before touching the database. The entity API itself is sealed at
-// the RLS layer, so this is the only path in.
+// Every call goes through POST /api/data, which applies the club role policy
+// before touching Postgres. Every table is deny-by-default under RLS and the API
+// holds the only key, so this is the only path in.
 //
-// The method signatures mirror base44.entities.* on purpose, which is what let
-// the pages move across with a one-line import change.
+// The method names deliberately match what the pages already called, which is
+// how the whole app moved backends with a one-line import change per file.
 
 import { api } from '@/lib/api';
 
@@ -52,7 +52,7 @@ function entityClient(entity) {
 
 export const db = Object.fromEntries(ENTITIES.map((e) => [e, entityClient(e)]));
 
-/** Submit a public RSVP. Unauthenticated by design — attendees are not users. */
+/** Submit a public RSVP. Unauthenticated by design: attendees are not users. */
 export function submitRsvp(payload) {
   return api.call('rsvp-submit', payload, { auth: false });
 }

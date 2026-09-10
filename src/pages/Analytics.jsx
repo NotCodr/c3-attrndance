@@ -41,7 +41,7 @@ export default function Analytics() {
 
   useEffect(() => { load(); }, [clubSlug]);
 
-  // Live polling for the realtime feel — cheap, only when a live event is selected or "all"
+  // Live polling for the realtime feel. Cheap, and only when a live event is selected or "all".
   useEffect(() => {
     const id = setInterval(load, REFRESH_MS);
     return () => clearInterval(id);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import { ScanLine, FileText, Receipt, ArrowRight, Github, Search } from 'lucide-react';
 import Logo from '@/components/Logo';
 import Decorations from '@/components/Decorations';
@@ -9,6 +10,8 @@ function Section({ children, className = '' }) {
 }
 
 export default function Landing() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen text-foreground">
       {/* Nav */}
@@ -18,8 +21,8 @@ export default function Landing() {
             <Logo size={44} />
             <span className="font-display font-bold text-2xl tracking-tight">connect3</span>
           </Link>
-          <Link to="/dashboard" className="c3-btn-primary">
-            sign in <ArrowRight className="w-4 h-4" />
+          <Link to={user ? '/dashboard' : '/login'} className="c3-btn-primary">
+            {user ? 'my clubs' : 'sign in'} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </header>
@@ -28,9 +31,6 @@ export default function Landing() {
       <div className="relative">
         <Decorations variant="hero" />
         <Section className="relative pt-12 pb-32 text-center">
-          <div className="inline-block c3-chip-purple mb-6">
-            ✨ for university club committees
-          </div>
           <h1 className="font-display font-bold uppercase tracking-tight text-5xl md:text-7xl lg:text-8xl text-balance leading-[0.95]">
             it takes three<br />
             <span className="relative inline-block">
@@ -39,14 +39,14 @@ export default function Landing() {
             </span>
           </h1>
           <p className="mt-8 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-balance">
-            find events, run clubs, file grants — all-in-one. Built for UniMelb clubs first.
+            find events, run clubs, file grants. all in one place, built for UniMelb clubs first.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
-            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
-              sign up <ArrowRight className="w-4 h-4" />
+            <Link to={user ? '/dashboard' : '/signup'} className="c3-btn-primary text-base px-7 py-3.5">
+              {user ? 'my clubs' : 'start a club'} <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link to="/dashboard" className="c3-btn-secondary text-base px-7 py-3.5">
-              <Search className="w-4 h-4" /> search
+            <Link to="/explore" className="c3-btn-secondary text-base px-7 py-3.5">
+              <Search className="w-4 h-4" /> find an event
             </Link>
           </div>
         </Section>
@@ -86,7 +86,7 @@ export default function Landing() {
             {[
               { icon: ScanLine, title: 'QR check-in', body: 'Students scan in at the door. Timestamps captured server-side, UMSU-compliant.', n: 1 },
               { icon: FileText, title: 'green sheet PDF', body: 'Auto-generated attendance with full name, student number, course, and arrival time.', n: 2 },
-              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance, and a pre-filled AFP — combined into one PDF.', n: 3 },
+              { icon: Receipt, title: 'one-click acquittal pack', body: 'Photos, receipts, attendance and a pre-filled AFP, combined into one PDF.', n: 3 },
             ].map((c) => (
               <div key={c.title} className="c3-card p-7">
                 <div className="flex items-center justify-between mb-4">
@@ -115,7 +115,7 @@ export default function Landing() {
             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
               free for student clubs. set up in under 5 minutes.
             </p>
-            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
+            <Link to={user ? '/dashboard' : '/signup'} className="c3-btn-primary text-base px-7 py-3.5">
               get started <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -133,7 +133,7 @@ export default function Landing() {
             <Link to="/privacy" className="hover:text-foreground">privacy</Link>
             <Link to="/terms" className="hover:text-foreground">terms</Link>
             <a href="mailto:hello@connect3.app" className="hover:text-foreground">contact</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-foreground inline-flex items-center gap-1">
+            <a href="https://github.com/NotCodr/c3-attrndance" target="_blank" rel="noreferrer" className="hover:text-foreground inline-flex items-center gap-1">
               <Github className="w-3.5 h-3.5" /> github
             </a>
           </div>

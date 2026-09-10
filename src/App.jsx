@@ -12,6 +12,7 @@ import Onboard from '@/pages/Onboard';
 import ClubHome from '@/pages/ClubHome';
 import EventsList from '@/pages/EventsList';
 import EventNew from '@/pages/EventNew';
+import EventEdit from '@/pages/EventEdit';
 import EventDetail from '@/pages/EventDetail';
 import EventScan from '@/pages/EventScan';
 import EventAcquittal from '@/pages/EventAcquittal';
@@ -22,6 +23,8 @@ import Analytics from '@/pages/Analytics';
 import Account from '@/pages/Account';
 import PublicRSVP from '@/pages/PublicRSVP';
 import PublicClub from '@/pages/PublicClub';
+import Explore from '@/pages/Explore';
+import Ticket from '@/pages/Ticket';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import AppShell from '@/components/AppShell';
@@ -69,6 +72,10 @@ function AppRoutes() {
       <Route path="/terms" element={<Terms />} />
       <Route path="/rsvp/:eventId" element={<PublicRSVP />} />
       <Route path="/p/:clubSlug" element={<PublicClub />} />
+      <Route path="/explore" element={<Explore />} />
+      {/* An attendee's ticket. The token in the query string is the credential,
+          so this stays outside the auth gate. */}
+      <Route path="/ticket" element={<Ticket />} />
 
       {/* Authentication */}
       <Route path="/login" element={<RedirectIfAuthed><Login /></RedirectIfAuthed>} />
@@ -86,6 +93,7 @@ function AppRoutes() {
         <Route path="/c/:clubSlug" element={<ClubHome />} />
         <Route path="/c/:clubSlug/events" element={<EventsList />} />
         <Route path="/c/:clubSlug/events/new" element={<EventNew />} />
+        <Route path="/c/:clubSlug/events/:eventId/edit" element={<EventEdit />} />
         <Route path="/c/:clubSlug/events/:eventId" element={<EventDetail />} />
         <Route path="/c/:clubSlug/events/:eventId/scan" element={<EventScan />} />
         <Route path="/c/:clubSlug/events/:eventId/acquittal" element={<EventAcquittal />} />

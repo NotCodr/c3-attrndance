@@ -39,7 +39,13 @@ export default function EventsList() {
       </div>
 
       <div className="space-y-2">
-        {filtered.length === 0 && <p className="text-sm text-muted-foreground italic">No events.</p>}
+        {filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground italic">
+            {events.length === 0
+              ? 'No events yet. Create one to get started.'
+              : `No ${filter === 'all' ? '' : filter + ' '}events.`}
+          </p>
+        )}
         {filtered.map((e) => (
           <Link key={e.id} to={`/c/${clubSlug}/events/${e.id}`} className="block c3-card p-4 hover:bg-secondary/30 transition">
             <div className="flex items-start justify-between gap-3">

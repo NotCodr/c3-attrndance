@@ -6,106 +6,137 @@ University of Melbourne clubs and the UMSU grant process first.
 A committee creates an event, shares a public RSVP link, scans attendees in at
 the door, then generates the acquittal pack (attendance record, photos,
 itemised receipts and a pre-filled Application for Payment) that the student
-union requires before releasing grant money.
+union wants before it releases grant money.
 
-## Architecture
+## Stack
 
-Vite + React on the front end. Base44 provides the database, the serverless
-function runtime and file storage.
-
-**Authentication is connect3's own** — it does not use Base44 auth. Accounts,
-passwords, email verification and sessions all live in `base44/functions/auth/*`
-and the `AppUser` / `AppSession` entities. Nobody is ever redirected to a
-Base44-hosted login page.
-
-### The data path
-
-Every entity is sealed. `base44/entities/*.jsonc` grant read and write to the
-`admin` role only, which means **no client can reach the database directly**.
-All access goes through one function:
-
-```
-browser ──► /functions/data ──► shared/policy.ts ──► entities (service role)
-                                (club role checks)
-```
-
-`base44/shared/policy.ts` is the permission model: which club role can read and
-write each entity. `src/lib/clubs.js` has a mirror of the role ladder, but it
-only decides which buttons to draw — it is advisory and a client can lie about
-it freely.
-
-Three writes bypass the generic gateway because they need rules of their own:
-
-| Function | Why it exists |
+| Layer | What |
 |---|---|
-| `rsvp-submit` | Public, unauthenticated. Enforces capacity and the UMSU-required fields server-side. |
-| `check-in` | Duplicate detection has to be shared between two scanners on two phones. |
-| `upload` | Base44 storage needs a privileged caller; also enforces size and type limits. |
+| Frontend | Vite + React 18, React Router, Tailwind, shadcn/ui |
+| API | One Supabase Edge Function (Deno + Hono) at `supabase/functions/api` |
+| Database | Supabase Postgres |
+| Storage | Supabase Storage (`uploads` bucket) |
+| Email | Resend |
+
+There is no vendor SDK in the frontend. The browser talks to one API over
+`fetch`, and that API is ordinary Web-standard request handlers, so it can be
+lifted onto any Deno or Node host later.
+
+## How access control works
+
+Every table has row-level security **enabled with no permissive policy**, which
+in Postgres means deny-by-default. The API connects with the service role key,
+which bypasses RLS, and decides permissions itself in
+`supabase/functions/_shared/policy.ts`.
+
+```
+browser ──► /api/data ──► policy.ts ──► Postgres (service role)
+                          club role checks
+```
+
+Postgres RLS cannot express this model directly, because connect3 issues its own
+identities rather than using Supabase Auth, so `auth.uid()` is always null. The
+policy layer is therefore the whole permission model, and it is unit tested.
+
+`src/lib/clubs.js` has a mirror of the role ladder. It only decides which buttons
+to draw; a client can lie about it freely, so nothing is ever authorised from it.
+
+Three writes sit outside the generic gateway because they need their own rules:
+
+| Route | Why |
+|---|---|
+| `POST /api/rsvp-submit` | Public and unauthenticated. Enforces capacity and the UMSU-required fields server-side. |
+| `POST /api/check-in` | Duplicate detection must be shared between two scanners on two phones. |
+| `POST /api/upload` | Storage needs a privileged caller, and size/type limits enforced only in a browser are not limits. |
 
 ### Roles
 
-`scanner` < `treasurer` < `admin` < `owner`. Checked per club, not globally.
+`scanner` < `treasurer` < `admin` < `owner`, checked per club, never globally.
 
-## Local development
+## Authentication
+
+connect3 owns its identity: `app_users` and `app_sessions`, not Supabase Auth.
+PBKDF2-SHA256 at 210k iterations, opaque session tokens stored only as SHA-256
+hashes, login lockout, timing-safe comparison, and a dummy hash on unknown
+emails so login cannot be used to enumerate registered club addresses.
+
+Sign-up, sign-in, email verification and password reset all happen in-app.
+
+## Setting up
+
+### 1. Create the Supabase project
+
+Create a project at supabase.com, then from **Project Settings -> API** note the
+project URL, the `anon` key and the `service_role` key.
+
+### 2. Apply the schema
+
+Paste each file into the SQL editor, in order:
+
+```
+supabase/migrations/20260910000001_init.sql              tables, constraints, RLS lockdown
+supabase/migrations/20260910000002_storage.sql           uploads bucket
+supabase/migrations/20260910000003_normalise_emails.sql  lowercase email invariant
+```
+
+Or, with the Supabase CLI (no Docker needed):
 
 ```bash
-npm install
+npx supabase db push --project-ref <ref> -p <database password>
 ```
 
-Create `.env.local`:
+### 3. Bring your data across (optional)
 
-```
-VITE_BASE44_APP_ID=6a083c7537b39dfd4b4eb9a0
-VITE_BASE44_APP_BASE_URL=https://connect3.base44.app
-```
-
-The Vite plugin proxies `/api` to that URL, and the app is built to call
-same-origin, so both variables are required or every request 404s.
+Only needed if you have live Base44 data to keep.
 
 ```bash
-npm run dev
+BASE44_APP_ID=<app id> BASE44_API_KEY=<key> node scripts/export-from-base44.mjs
 ```
 
-Note that the front end talks to whichever backend `VITE_BASE44_APP_BASE_URL`
-points at, so local development runs against **live data** unless you point it
-at a separate Base44 app.
+That writes `supabase/seed-from-base44.sql`. Review it, then run it in the SQL
+editor after the migrations. It preserves ids so foreign keys survive, and is
+safe to re-run.
 
-## Deploying
+### 4. Set the function secrets
 
-Entities and functions are deployed with the Base44 CLI:
-
-```bash
-npx base44 login
-npx base44 entities push
-npx base44 functions deploy
-```
-
-`entities push` is what applies the RLS rules. Until it runs, the database is
-still world-readable.
-
-**The entity files must stay in sync with the deployed schema.** `entities push`
-overwrites the remote schema with the local copy and deletes anything not
-present locally, so a stale file silently drops real fields. The files in
-`base44/entities/` were regenerated from the live schema; if they drift again,
-re-pull before pushing:
-
-```bash
-curl -s "https://connect3.base44.app/api/apps/$VITE_BASE44_APP_ID/entity-schemas"   -H "api_key: $BASE44_APP_API_KEY"
-```
-
-Comparing local files against *records* is not a sufficient check — records keep
-whatever keys they were written with and can lag a schema rename. Compare
-against `entity-schemas`.
-
-### Required secrets
-
-Set these in app settings → environment variables (or `npx base44 secrets set`):
+**Project Settings -> Edge Functions -> Secrets:**
 
 | Secret | Required | Purpose |
 |---|---|---|
-| `RESEND_API_KEY` | Strongly recommended | Sends verification and password-reset email. Base44's built-in `SendEmail` only reliably reaches *registered Base44 users*, and a new connect3 signup is not one — without this, verification email may not arrive. |
-| `MAIL_FROM` | With Resend | Sender address, e.g. `connect3 <hello@yourdomain>`. Defaults to Resend's shared onboarding sender. |
+| `RESEND_API_KEY` | **Yes** | Verification and password-reset email. Without it, nobody can complete a signup. |
+| `MAIL_FROM` | Recommended | Sender, e.g. `connect3 <hello@yourdomain>`. Defaults to Resend's shared onboarding sender. |
 | `APP_ORIGIN` | Recommended | Absolute origin used to build password-reset links. Falls back to the request origin. |
+| `ALLOWED_ORIGINS` | **Yes in production** | Comma-separated origins allowed to call the API, e.g. `https://connect3.app`. localhost is always allowed. |
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
+
+### 5. Deploy the API
+
+```bash
+npx supabase functions deploy api --project-ref <ref> --no-verify-jwt --use-api
+```
+
+`--no-verify-jwt` is required: connect3 authenticates callers itself, so
+Supabase's JWT gate would reject every legitimate request, and the public
+endpoints (login, register, rsvp-submit) would stop working entirely.
+`--use-api` bundles server-side so Docker is not required.
+
+### 6. Point the frontend at it
+
+Copy `.env.example` to `.env.local`:
+
+```
+VITE_API_URL=https://<project-ref>.supabase.co/functions/v1/api
+VITE_SUPABASE_ANON_KEY=<anon key>
+```
+
+```bash
+npm install
+npm run dev
+```
+
+The anon key is public by design. Every table is deny-by-default, so it reads
+nothing on its own; the Functions gateway just wants it for routing.
 
 ## Scripts
 
@@ -114,4 +145,10 @@ Set these in app settings → environment variables (or `npx base44 secrets set`
 | `npm run dev` | Dev server on :5173 |
 | `npm run build` | Production build to `dist/` |
 | `npm run lint` | ESLint (clean) |
-| `npm run typecheck` | `tsc --checkJs` over untyped JSX. **Pre-existing failures** (~61) from undeclared optional props; not a regression gate. |
+| `npm run typecheck` | `tsc --checkJs` over untyped JSX. Pre-existing failures from undeclared optional props; not a regression gate. |
+
+## Deploying the frontend
+
+Any static host: Vercel, Netlify, Cloudflare Pages. Build command `npm run
+build`, output `dist`. Set `VITE_API_URL` and `VITE_SUPABASE_ANON_KEY` in the
+host's environment, and add the site's origin to `ALLOWED_ORIGINS` on the API.
