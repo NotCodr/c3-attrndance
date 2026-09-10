@@ -1,160 +1,113 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
-import { createAxiosClient } from '@base44/sdk/dist/utils/axios-client';
+// connect3's own session state.
+//
+// Replaces the previous Base44 flow, which bounced people to a hosted login page
+// on another domain and could not create accounts from inside the app.
 
-const AuthContext = createContext();
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { api, clearToken, getToken, setToken } from '@/lib/api';
 
-export const AuthProvider = ({ children }) => {
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
-  const [authError, setAuthError] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
+  const [clubs, setClubs] = useState([]);
+  // Start loading only if a token exists; otherwise we already know the answer
+  // and can render the public site without a round trip.
+  const [loading, setLoading] = useState(!!getToken());
 
-  useEffect(() => {
-    checkAppState();
+  const refresh = useCallback(async () => {
+    if (!getToken()) {
+      setUser(null);
+      setClubs([]);
+      setLoading(false);
+      return null;
+    }
+    try {
+      const { user: me, clubs: myClubs } = await api.call('auth/me');
+      setUser(me);
+      setClubs(myClubs || []);
+      return me;
+    } catch (err) {
+      // 401 means the token is expired or revoked; anything else leaves the
+      // session alone so a blip doesn't sign people out mid-event.
+      if (err.status === 401) {
+        clearToken();
+        setUser(null);
+        setClubs([]);
+      }
+      return null;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      // First, check app public settings (with token if available)
-      // This will tell us if auth is required, user not registered, etc.
-      const appClient = createAxiosClient({
-        baseURL: `/api/apps/public`,
-        headers: {
-          'X-App-Id': appParams.appId
-        },
-        token: appParams.token, // Include token if available
-        interceptResponses: true
-      });
-      
-      try {
-        const publicSettings = await appClient.get(`/prod/public-settings/by-id/${appParams.appId}`);
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
+  useEffect(() => { refresh(); }, [refresh]);
 
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
-    }
-  };
+  const login = useCallback(async (email, password) => {
+    const { token } = await api.call('auth/login', { email, password }, { auth: false });
+    setToken(token);
+    await refresh();
+  }, [refresh]);
 
-  const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
-  };
-
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
-  };
-
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      authChecked,
-      logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
-    }}>
-      {children}
-    </AuthContext.Provider>
+  const signup = useCallback(
+    (email, password, fullName) =>
+      api.call('auth/register', { email, password, full_name: fullName }, { auth: false }),
+    [],
   );
-};
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+  const verifyEmail = useCallback(async (email, code) => {
+    const { token } = await api.call('auth/verify-email', { email, code }, { auth: false });
+    setToken(token);
+    await refresh();
+  }, [refresh]);
+
+  const resendCode = useCallback(
+    (email) => api.call('auth/resend-code', { email }, { auth: false }),
+    [],
+  );
+
+  const forgotPassword = useCallback(
+    (email) => api.call('auth/forgot-password', { email }, { auth: false }),
+    [],
+  );
+
+  const resetPassword = useCallback(
+    (token, password) => api.call('auth/reset-password', { token, password }, { auth: false }),
+    [],
+  );
+
+  const logout = useCallback(async () => {
+    // Revoke server-side, but drop the local session regardless so a failed
+    // request can never leave someone stuck signed in.
+    await api.call('auth/logout').catch(() => {});
+    clearToken();
+    setUser(null);
+    setClubs([]);
+  }, []);
+
+  const value = useMemo(
+    () => ({
+      user,
+      clubs,
+      loading,
+      isAuthenticated: !!user,
+      refresh,
+      login,
+      signup,
+      verifyEmail,
+      resendCode,
+      forgotPassword,
+      resetPassword,
+      logout,
+    }),
+    [user, clubs, loading, refresh, login, signup, verifyEmail, resendCode, forgotPassword, resetPassword, logout],
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
+  return ctx;
+}

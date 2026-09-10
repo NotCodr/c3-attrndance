@@ -106,5 +106,17 @@
     "starts_at",
     "ends_at",
     "location_name"
-  ]
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

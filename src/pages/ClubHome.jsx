@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useParams, useOutletContext, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { db } from '@/api/db';
 import { getClubBySlug } from '@/lib/clubs';
 import { formatEventTimeRange } from '@/lib/format';
-import { Plus, Calendar, MapPin, ArrowRight, CircleDot } from 'lucide-react';
+import { Plus, Calendar, MapPin, ArrowRight } from 'lucide-react';
 
 function StatusDot({ status }) {
   const map = {
@@ -48,7 +48,7 @@ export default function ClubHome() {
       const c = await getClubBySlug(clubSlug);
       if (!c) return navigate('/dashboard');
       setClub(c);
-      const evs = await base44.entities.Event.filter({ club_id: c.id }, '-starts_at', 200);
+      const evs = await db.Event.filter({ club_id: c.id }, '-starts_at', 200);
       setEvents(evs);
       setLoading(false);
     })();

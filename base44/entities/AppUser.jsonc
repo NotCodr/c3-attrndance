@@ -1,0 +1,79 @@
+{
+  "name": "AppUser",
+  "type": "object",
+  "description": "connect3's own identity record. Replaces Base44 auth entirely; nothing here is ever readable by a client, only by base44/functions/auth/* via asServiceRole.",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Lowercased. Unique per user."
+    },
+    "full_name": {
+      "type": "string"
+    },
+    "password_hash": {
+      "type": "string",
+      "description": "pbkdf2$sha256$<iterations>$<saltB64>$<hashB64>. Never leaves the backend."
+    },
+    "email_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "verification_code_hash": {
+      "type": "string",
+      "description": "SHA-256 of the 6-digit signup code."
+    },
+    "verification_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verification_attempts": {
+      "type": "number",
+      "default": 0
+    },
+    "reset_token_hash": {
+      "type": "string",
+      "description": "SHA-256 of the single-use password reset token."
+    },
+    "reset_expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "failed_login_attempts": {
+      "type": "number",
+      "default": 0
+    },
+    "locked_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Set after repeated failed logins to blunt online guessing."
+    },
+    "last_login_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "disabled"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "email",
+    "password_hash"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

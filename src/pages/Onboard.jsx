@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { useAuth } from '@/lib/AuthContext';
+import { db, api } from '@/api/db';
 import { slugify } from '@/lib/format';
 import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import { Upload, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function Onboard() {
   const { user } = useOutletContext() || {};
+  const { refresh } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -41,62 +43,58 @@ export default function Onboard() {
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) return toast.error('Logo must be under 5 MB');
     setLogoUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+    const { file_url } = await api.upload(f);
     setLogoUrl(file_url);
     setLogoUploading(false);
   };
 
   const createClub = async () => {
     if (!validateSlug(slug)) return toast.error('Slug must be 3–40 chars, lowercase letters/digits/hyphens.');
-    // Uniqueness
-    const existing = await base44.entities.Club.filter({ slug });
-    if (existing.length > 0) return toast.error('That slug is taken.');
     if (!primaryEmail.trim()) return toast.error('Primary contact email is required.');
 
     setSaving(true);
     const u = UNIVERSITY_OPTIONS.find((o) => o.slug === university);
-    const club = await base44.entities.Club.create({
-      name: name.trim(),
-      slug,
-      university,
-      university_name: u?.name,
-      union_name: u?.union,
-      instagram_handle: instagram.replace(/^@/, '').trim() || undefined,
-      description: description.trim() || undefined,
-      logo_url: logoUrl || undefined,
-      primary_contact_email: primaryEmail.toLowerCase().trim(),
-      treasurer_email: (treasurerEmail || primaryEmail).toLowerCase().trim(),
-    });
-
-    // Owner membership
-    await base44.entities.ClubMembership.create({
-      club_id: club.id,
-      user_email: user.email.toLowerCase(),
-      full_name: user.full_name,
-      role: 'owner',
-      accepted_at: new Date().toISOString(),
-    });
-
-    // Invites
-    const pending = invites.filter((i) => i.email.trim());
-    for (const inv of pending) {
-      await base44.entities.ClubMembership.create({
-        club_id: club.id,
-        user_email: inv.email.toLowerCase().trim(),
-        role: inv.role,
-        invited_by_email: user.email.toLowerCase(),
+    try {
+      // Slug uniqueness and the founder's owner membership are both handled by
+      // the backend, in the same call that creates the club — a club can never
+      // end up existing without an owner.
+      const club = await db.Club.create({
+        name: name.trim(),
+        slug,
+        university_slug: university,
+        university_name: u?.name,
+        union_name: u?.union,
+        instagram_handle: instagram.replace(/^@/, '').trim() || undefined,
+        description: description.trim() || undefined,
+        logo_url: logoUrl || undefined,
+        primary_contact_email: primaryEmail.toLowerCase().trim(),
+        treasurer_email: (treasurerEmail || primaryEmail).toLowerCase().trim(),
       });
+
+      for (const inv of invites.filter((i) => i.email.trim())) {
+        await db.ClubMembership.create({
+          club_id: club.id,
+          user_email: inv.email.toLowerCase().trim(),
+          role: inv.role,
+          invited_by_email: user.email.toLowerCase(),
+        });
+      }
+
+      await db.AuditLog.create({
+        club_id: club.id,
+        action: 'club.created',
+        metadata: { name: club.name },
+      });
+
+      // The shell reads clubs from auth context, so refresh before navigating
+      // or the new club won't be in the switcher.
+      await refresh();
+      toast.success('Club created');
+      navigate(`/c/${club.slug}`);
+    } catch (err) {
+      toast.error(err.message || 'Could not create the club.');
+      setSaving(false);
     }
-
-    await base44.entities.AuditLog.create({
-      actor_email: user.email,
-      club_id: club.id,
-      action: 'club.created',
-      metadata: { name: club.name },
-    });
-
-    toast.success('Club created');
-    navigate(`/c/${club.slug}`);
   };
 
   const StepBadge = ({ n, label }) => (

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { formatEventTimeRange, randomToken } from '@/lib/format';
-import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
+import { db, submitRsvp } from '@/api/db';
+import { formatEventTimeRange } from '@/lib/format';
+import { UNIVERSITY_OPTIONS, universityNameFromSlug } from '@/lib/umsu';
 import { Loader2, MapPin, Calendar, CheckCircle2, Lock, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,69 +25,60 @@ export default function PublicRSVP() {
   const [website, setWebsite] = useState(''); // honeypot
 
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [confirmed, setConfirmed] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState('');
 
   useEffect(() => {
     (async () => {
-      const list = await base44.entities.Event.filter({ id: eventId });
+      const list = await db.Event.filter({ id: eventId });
       const ev = list[0];
       if (!ev) { setNotFound(true); setLoading(false); return; }
       setEvent(ev);
-      const clubs = await base44.entities.Club.filter({ id: ev.club_id });
+      const clubs = await db.Club.filter({ id: ev.club_id });
       setClub(clubs[0]);
-      setUniversity(clubs[0]?.university || 'unimelb');
+      setUniversity(clubs[0]?.university_slug || 'unimelb');
       setLoading(false);
     })();
   }, [eventId]);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (website) return; // honeypot
     if (!fullName.trim() || !email.trim()) return;
-    if (event.is_grant_funded && (!studentNumber.trim() || !course.trim())) return;
     setSubmitting(true);
+    setError('');
 
     const lcEmail = email.toLowerCase().trim();
-    // Check capacity
-    const confirmedCount = (await base44.entities.RSVP.filter({ event_id: event.id, status: 'confirmed' })).length;
-    const overCapacity = event.capacity && confirmedCount >= event.capacity;
-    const status = overCapacity ? 'waitlisted' : 'confirmed';
-
-    // Dedupe by (event, email)
-    const existing = await base44.entities.RSVP.filter({ event_id: event.id, email: lcEmail });
-    let rsvp;
-    if (existing[0]) {
-      rsvp = await base44.entities.RSVP.update(existing[0].id, {
-        full_name: fullName.trim(),
-        student_number: studentNumber.trim() || undefined,
-        course: course.trim() || undefined,
-        university,
-        dietary_requirements: dietary.trim() || undefined,
-        accessibility_requirements: accessibility.trim() || undefined,
-        status: existing[0].status === 'cancelled' ? status : existing[0].status,
-      });
-    } else {
-      rsvp = await base44.entities.RSVP.create({
+    try {
+      const result = await submitRsvp({
         event_id: event.id,
-        club_id: event.club_id,
         full_name: fullName.trim(),
         email: lcEmail,
         student_number: studentNumber.trim() || undefined,
         course: course.trim() || undefined,
-        university,
+        university_name: universityNameFromSlug(university),
         dietary_requirements: dietary.trim() || undefined,
         accessibility_requirements: accessibility.trim() || undefined,
-        status,
-        rsvp_token: randomToken(24),
+        website, // honeypot; the server decides what to do with it
       });
+
+      setConfirmed({ status: result.status, email: lcEmail });
+
+      if (result.status === 'confirmed' && result.rsvp_token) {
+        const url = `${window.location.origin}/rsvp/${event.id}#token=${result.rsvp_token}`;
+        setQrDataUrl(
+          await QRCode.toDataURL(url, {
+            width: 280,
+            margin: 1,
+            color: { dark: '#0A0A0F', light: '#FFFFFF' },
+          }),
+        );
+      }
+    } catch (err) {
+      setError(err.message || 'Could not submit your RSVP. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
-    setConfirmed(rsvp);
-    // Generate QR
-    const url = `${window.location.origin}/rsvp/${event.id}#token=${rsvp.rsvp_token}`;
-    const dataUrl = await QRCode.toDataURL(url, { width: 280, margin: 1, color: { dark: '#0A0A0F', light: '#FFFFFF' } });
-    setQrDataUrl(dataUrl);
-    setSubmitting(false);
   };
 
   if (loading) return <Centered><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></Centered>;
@@ -137,6 +128,11 @@ export default function PublicRSVP() {
           </div>
         ) : (
           <form onSubmit={submit} className="c3-card p-6 space-y-4">
+            {error && (
+              <p role="alert" className="text-sm text-destructive bg-destructive/10 border border-destructive/30 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
             <div>
               <label className="c3-label">full name</label>
               <input className="c3-input" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={100} />

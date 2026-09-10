@@ -1,24 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { Plus, ArrowRight, Sparkles } from 'lucide-react';
-import { listMyClubs } from '@/lib/clubs';
 import Logo from '@/components/Logo';
 
 export default function Dashboard() {
-  const { user } = useOutletContext() || {};
+  const { clubs } = useOutletContext() || { clubs: [] };
   const navigate = useNavigate();
-  const [clubs, setClubs] = useState(null);
 
   useEffect(() => {
-    (async () => {
-      if (!user?.email) return;
-      const cs = await listMyClubs(user.email);
-      setClubs(cs);
-      if (cs.length === 1) navigate(`/c/${cs[0].slug}`, { replace: true });
-    })();
-  }, [user]);
+    // Straight into the club when there's only one to choose from.
+    if (clubs?.length === 1) navigate(`/c/${clubs[0].slug}`, { replace: true });
+  }, [clubs, navigate]);
 
-  if (clubs === null) {
+  if (!clubs) {
     return <div className="text-sm text-muted-foreground">loading…</div>;
   }
 

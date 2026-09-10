@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate, useOutletContext } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getMyRoleInClub, canEditEvents, canScan, canManageAcquittal } from '@/lib/clubs';
 import { formatEventTimeRange, formatMoneyCents, randomToken, slugify } from '@/lib/format';
-import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Loader2, Copy, AlertTriangle, X, Receipt } from 'lucide-react';
+import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Copy, AlertTriangle, X, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateAttendancePdf } from '@/lib/pdf';
 
@@ -21,15 +21,15 @@ export default function EventDetail() {
   const [receipts, setReceipts] = useState([]);
 
   const reload = async () => {
-    const evs = await base44.entities.Event.filter({ id: eventId });
+    const evs = await db.Event.filter({ id: eventId });
     setEvent(evs[0]);
-    const clubs = await base44.entities.Club.filter({ id: evs[0].club_id });
+    const clubs = await db.Club.filter({ id: evs[0].club_id });
     setClub(clubs[0]);
     if (user?.email) setRole(await getMyRoleInClub(evs[0].club_id, user.email));
-    setRsvps(await base44.entities.RSVP.filter({ event_id: eventId }));
-    setCheckIns(await base44.entities.CheckIn.filter({ event_id: eventId }, 'checked_in_at'));
-    setPhotos(await base44.entities.EventPhoto.filter({ event_id: eventId }));
-    setReceipts(await base44.entities.EventReceipt.filter({ event_id: eventId }));
+    setRsvps(await db.RSVP.filter({ event_id: eventId }));
+    setCheckIns(await db.CheckIn.filter({ event_id: eventId }, 'checked_in_at'));
+    setPhotos(await db.EventPhoto.filter({ event_id: eventId }));
+    setReceipts(await db.EventReceipt.filter({ event_id: eventId }));
   };
   useEffect(() => { reload(); }, [eventId, user?.email]);
 
@@ -41,25 +41,25 @@ export default function EventDetail() {
 
   const publish = async () => {
     if (event.status === 'published') return;
-    await base44.entities.Event.update(event.id, {
+    await db.Event.update(event.id, {
       status: 'published',
       published_at: new Date().toISOString(),
       public_slug: event.public_slug || `${slugify(event.title)}-${randomToken(6)}`,
       qr_token: event.qr_token || randomToken(32),
     });
-    await base44.entities.AuditLog.create({ club_id: club.id, event_id: event.id, action: 'event.published', actor_email: user?.email });
+    await db.AuditLog.create({ club_id: club.id, event_id: event.id, action: 'event.published', actor_email: user?.email });
     toast.success('Published');
     reload();
   };
   const cancel = async () => {
     const reason = prompt('Cancellation reason (optional):') || undefined;
-    await base44.entities.Event.update(event.id, { status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: reason });
-    await base44.entities.AuditLog.create({ club_id: club.id, event_id: event.id, action: 'event.cancelled', actor_email: user?.email, metadata: { reason } });
+    await db.Event.update(event.id, { status: 'cancelled', cancelled_at: new Date().toISOString(), cancellation_reason: reason });
+    await db.AuditLog.create({ club_id: club.id, event_id: event.id, action: 'event.cancelled', actor_email: user?.email, metadata: { reason } });
     toast.success('Cancelled');
     reload();
   };
   const markCompleted = async () => {
-    await base44.entities.Event.update(event.id, { status: 'completed' });
+    await db.Event.update(event.id, { status: 'completed' });
     toast.success('Marked completed');
     reload();
   };

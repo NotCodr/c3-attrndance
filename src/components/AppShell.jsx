@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useParams, useNavigate } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
-import { listMyClubs, getCurrentUser } from '@/lib/clubs';
+import { useAuth } from '@/lib/AuthContext';
 import { Calendar, Users, Settings, FileText, LogOut, ChevronDown, Plus, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from '@/components/Logo';
@@ -25,26 +24,15 @@ export default function AppShell() {
   const location = useLocation();
   const { clubSlug } = useParams();
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
-  const [clubs, setClubs] = useState([]);
+  const { user, clubs, logout } = useAuth();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const u = await getCurrentUser();
-      setUser(u);
-      if (u?.email) {
-        const cs = await listMyClubs(u.email);
-        setClubs(cs);
-      }
-    })();
-  }, []);
 
   const activeClub = clubs.find((c) => c.slug === clubSlug);
   const inClub = !!clubSlug;
 
   const onLogout = async () => {
-    await base44.auth.logout('/');
+    await logout();
+    navigate('/', { replace: true });
   };
 
   return (

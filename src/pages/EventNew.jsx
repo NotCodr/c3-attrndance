@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db, api } from '@/api/db';
 import { getClubBySlug } from '@/lib/clubs';
 import { fromLocalInputValue, slugify, randomToken, toLocalInputValue } from '@/lib/format';
 import { UMSU_RULES } from '@/lib/umsu';
@@ -54,7 +54,7 @@ export default function EventNew() {
     if (!f) return;
     if (f.size > 5 * 1024 * 1024) return toast.error('Cover must be under 5 MB');
     setCoverUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file: f });
+    const { file_url } = await api.upload(f, club?.id);
     setCoverUrl(file_url);
     setCoverUploading(false);
   };
@@ -108,8 +108,8 @@ export default function EventNew() {
     if (err) return toast.error(err);
     if (!club) return;
     setSaving(true);
-    const ev = await base44.entities.Event.create(buildPayload(publish));
-    await base44.entities.AuditLog.create({
+    const ev = await db.Event.create(buildPayload(publish));
+    await db.AuditLog.create({
       club_id: club.id, event_id: ev.id, action: publish ? 'event.published' : 'event.created',
       metadata: { title: ev.title },
     });

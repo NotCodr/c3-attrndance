@@ -1,0 +1,46 @@
+{
+  "name": "AppSession",
+  "type": "object",
+  "description": "An issued login session. Tokens are stored hashed so a database read cannot be replayed as a login.",
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "token_hash": {
+      "type": "string",
+      "description": "SHA-256 of the opaque bearer token. The token itself is never stored."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "revoked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "user_agent": {
+      "type": "string"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_id",
+    "token_hash",
+    "expires_at"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "write": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

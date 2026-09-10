@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { base44 } from '@/api/base44Client';
+import { db } from '@/api/db';
 import { getClubBySlug } from '@/lib/clubs';
 import { formatMoneyCents, formatDate } from '@/lib/format';
-import { FileText, ExternalLink } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export default function AcquittalPacks() {
   const { clubSlug } = useParams();
@@ -16,8 +16,8 @@ export default function AcquittalPacks() {
       const c = await getClubBySlug(clubSlug);
       if (!c) return;
       setClub(c);
-      setPacks(await base44.entities.AcquittalPack.filter({ club_id: c.id }, '-created_date'));
-      setEvents(await base44.entities.Event.filter({ club_id: c.id }, '-starts_at', 500));
+      setPacks(await db.AcquittalPack.filter({ club_id: c.id }, '-created_date'));
+      setEvents(await db.Event.filter({ club_id: c.id }, '-starts_at', 500));
     })();
   }, [clubSlug]);
 
