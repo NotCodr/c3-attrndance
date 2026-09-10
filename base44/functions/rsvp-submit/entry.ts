@@ -46,7 +46,7 @@ export default async function (req: Request): Promise<Response> {
     full_name: fullName,
     student_number: studentNumber,
     course,
-    university_name: clampText(body.university_name, 120),
+    university: clampText(body.university, 120),
     dietary_requirements: event.collect_dietary ? clampText(body.dietary_requirements, 300) : undefined,
     accessibility_requirements: event.collect_accessibility
       ? clampText(body.accessibility_requirements, 300)

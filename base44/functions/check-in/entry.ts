@@ -74,7 +74,7 @@ export default async function (req: Request): Promise<Response> {
     email: rsvp ? rsvp.email : normaliseEmail(body.email) || undefined,
     student_number: studentNumber,
     course,
-    university_name: rsvp ? rsvp.university_name : clampText(body.university_name, 120),
+    university: rsvp ? rsvp.university : clampText(body.university, 120),
     checked_in_at: new Date().toISOString(),
     checked_in_by_email: actor.user.email,
     method: body.method === "walk_in_add" || body.method === "manual_lookup" ? body.method : "qr_scan",

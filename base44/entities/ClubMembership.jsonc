@@ -5,14 +5,11 @@
     "club_id": {
       "type": "string"
     },
-    "club_slug": {
-      "type": "string"
-    },
     "user_email": {
       "type": "string",
-      "description": "Lowercased email of the user"
+      "description": "Lowercased email of the member"
     },
-    "user_name": {
+    "full_name": {
       "type": "string"
     },
     "role": {
@@ -30,8 +27,7 @@
     },
     "accepted_at": {
       "type": "string",
-      "format": "date-time",
-      "description": "Null = pending invite"
+      "format": "date-time"
     }
   },
   "required": [

@@ -8,10 +8,6 @@
     "club_id": {
       "type": "string"
     },
-    "rsvp_token": {
-      "type": "string",
-      "description": "Random per-RSVP token for QR"
-    },
     "full_name": {
       "type": "string"
     },
@@ -24,7 +20,7 @@
     "course": {
       "type": "string"
     },
-    "university_name": {
+    "university": {
       "type": "string"
     },
     "is_member": {
@@ -45,6 +41,10 @@
     },
     "accessibility_requirements": {
       "type": "string"
+    },
+    "rsvp_token": {
+      "type": "string",
+      "description": "Unique token used in QR code"
     }
   },
   "required": [

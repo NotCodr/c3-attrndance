@@ -77,7 +77,7 @@ export default function Committee() {
         {members.map((m) => (
           <div key={m.id} className="p-3 flex items-center justify-between gap-3 text-sm">
             <div className="min-w-0">
-              <p className="font-medium truncate">{m.user_name || m.user_email}</p>
+              <p className="font-medium truncate">{m.full_name || m.user_email}</p>
               <p className="text-xs text-muted-foreground truncate">{m.user_email}{!m.accepted_at && ' · pending'}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">

@@ -61,7 +61,7 @@ export default function Onboard() {
       const club = await db.Club.create({
         name: name.trim(),
         slug,
-        university_slug: university,
+        university,
         university_name: u?.name,
         union_name: u?.union,
         instagram_handle: instagram.replace(/^@/, '').trim() || undefined,

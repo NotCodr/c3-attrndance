@@ -83,6 +83,20 @@ npx base44 functions deploy
 `entities push` is what applies the RLS rules. Until it runs, the database is
 still world-readable.
 
+**The entity files must stay in sync with the deployed schema.** `entities push`
+overwrites the remote schema with the local copy and deletes anything not
+present locally, so a stale file silently drops real fields. The files in
+`base44/entities/` were regenerated from the live schema; if they drift again,
+re-pull before pushing:
+
+```bash
+curl -s "https://connect3.base44.app/api/apps/$VITE_BASE44_APP_ID/entity-schemas"   -H "api_key: $BASE44_APP_API_KEY"
+```
+
+Comparing local files against *records* is not a sufficient check — records keep
+whatever keys they were written with and can lag a schema rename. Compare
+against `entity-schemas`.
+
 ### Required secrets
 
 Set these in app settings → environment variables (or `npx base44 secrets set`):

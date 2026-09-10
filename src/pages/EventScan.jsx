@@ -222,7 +222,7 @@ function WalkIn({ event, club, onSubmit }) {
       email: email.toLowerCase().trim() || undefined,
       student_number: studentNumber.trim() || undefined,
       course: course.trim() || undefined,
-      university_name: event.is_grant_funded ? club?.university_name : undefined,
+      university: event.is_grant_funded ? club?.university : undefined,
     });
     if (result) {
       setFullName(''); setEmail(''); setStudentNumber(''); setCourse('');

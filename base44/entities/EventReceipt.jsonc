@@ -23,9 +23,6 @@
     "purchase_date": {
       "type": "string",
       "format": "date"
-    },
-    "uploaded_by_email": {
-      "type": "string"
     }
   },
   "required": [

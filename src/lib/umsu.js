@@ -20,10 +20,3 @@ export const UMSU_RULES = {
 export const UNIVERSITY_OPTIONS = [
   { slug: 'unimelb', name: 'University of Melbourne', union: 'UMSU' },
 ];
-
-// Clubs store a university *slug*; RSVPs and check-ins store the display *name*,
-// because that is what UMSU expects to read on the attendance record.
-export function universityNameFromSlug(slug) {
-  if (!slug) return undefined;
-  return UNIVERSITY_OPTIONS.find((u) => u.slug === slug)?.name || 'Other';
-}

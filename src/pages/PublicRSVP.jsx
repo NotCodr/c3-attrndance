@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db, submitRsvp } from '@/api/db';
 import { formatEventTimeRange } from '@/lib/format';
-import { UNIVERSITY_OPTIONS, universityNameFromSlug } from '@/lib/umsu';
+import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
 import { Loader2, MapPin, Calendar, CheckCircle2, Lock, AlertTriangle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -37,7 +37,7 @@ export default function PublicRSVP() {
       setEvent(ev);
       const clubs = await db.Club.filter({ id: ev.club_id });
       setClub(clubs[0]);
-      setUniversity(clubs[0]?.university_slug || 'unimelb');
+      setUniversity(clubs[0]?.university || 'unimelb');
       setLoading(false);
     })();
   }, [eventId]);
@@ -56,7 +56,7 @@ export default function PublicRSVP() {
         email: lcEmail,
         student_number: studentNumber.trim() || undefined,
         course: course.trim() || undefined,
-        university_name: universityNameFromSlug(university),
+        university,
         dietary_requirements: dietary.trim() || undefined,
         accessibility_requirements: accessibility.trim() || undefined,
         website, // honeypot; the server decides what to do with it

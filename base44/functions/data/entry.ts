@@ -118,7 +118,7 @@ export default async function (req: Request): Promise<Response> {
       await svc.entities.ClubMembership.create({
         club_id: club.id,
         user_email: String(actor.user.email).toLowerCase(),
-        user_name: actor.user.full_name,
+        full_name: actor.user.full_name,
         role: "owner",
         accepted_at: new Date().toISOString(),
       });

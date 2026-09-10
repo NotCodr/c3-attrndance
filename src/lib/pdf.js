@@ -118,7 +118,7 @@ export async function generateAttendancePdf({ event, club, checkIns, returnBytes
           clipText(regular, c.full_name, 9, colX[2] - colX[1]),
           c.student_number || '—',
           clipText(regular, c.course || '—', 9, colX[4] - colX[3]),
-          clipText(regular, c.university_name || '—', 9, colX[5] - colX[4]),
+          clipText(regular, c.university || '—', 9, colX[5] - colX[4]),
           arrivalTimeLocal(c.checked_in_at),
         ];
         row.forEach((cell, i) => p.drawText(cell, { x: colX[i], y, size: 9, font: regular, color: TEXT }));

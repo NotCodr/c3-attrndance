@@ -9,8 +9,7 @@
       "type": "string"
     },
     "rsvp_id": {
-      "type": "string",
-      "description": "Null for walk-ins"
+      "type": "string"
     },
     "full_name": {
       "type": "string"
@@ -24,7 +23,7 @@
     "course": {
       "type": "string"
     },
-    "university_name": {
+    "university": {
       "type": "string"
     },
     "checked_in_at": {
