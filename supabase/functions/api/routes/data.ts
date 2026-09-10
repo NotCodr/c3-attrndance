@@ -1,9 +1,9 @@
 // The data gateway: the only way the browser reaches the database.
 //
 // Every table is deny-by-default under RLS and the API holds the only key, so
-// this handler plus policy.ts is the whole access-control story. It keeps the
-// Base44-era request shape ({ entity, op, query, ... }) so the React client did
-// not change when the backend moved.
+// this handler plus policy.ts is the whole access-control story. The request
+// shape ({ entity, op, query, ... }) is the one the React client already spoke,
+// which is why the frontend needed no changes when the backend moved.
 
 import { Hono } from "jsr:@hono/hono@4";
 import { db, isUniqueViolation } from "../../_shared/db.ts";
@@ -57,7 +57,7 @@ function applyQuery(builder: any, query: Record<string, unknown>) {
   return builder;
 }
 
-/** Sort strings are Base44-style: "starts_at", or "-created_date" for descending. */
+/** Sort strings are "starts_at", or "-created_date" for descending. */
 function applySort(builder: any, sort: unknown) {
   if (typeof sort !== "string" || !sort) return builder;
   const desc = sort.startsWith("-");
@@ -238,9 +238,9 @@ dataRoutes.post("/data", async (c) => {
   const { data: updated, error } = await supabase.from(table).update(patch).eq("id", body.id).select().single();
   if (error) throw new Error(error.message);
 
-  // The old build fired this from a Base44 workflow that pointed at a function
-  // which had never been deployed, so completed events notified nobody. Firing
-  // it from the transition itself removes that whole class of failure.
+  // An earlier backend fired this from a workflow pointing at a function that
+  // had never been deployed, so completed events notified nobody. Firing it from
+  // the transition itself removes that whole class of failure.
   if (entity === "Event" && existing.status !== "completed" && updated.status === "completed") {
     await notifyEventCompleted(updated.id).catch((e) => console.error("[notify] failed:", e));
   }

@@ -6,8 +6,8 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    // The "@" alias used to come from the Base44 Vite plugin. It is declared
-    // here now so the build does not depend on that package.
+    // Declared here rather than coming from a bundler plugin, so the build
+    // depends on nothing but Vite itself.
     alias: {
       '@': path.resolve(import.meta.dirname, './src'),
     },

@@ -85,19 +85,7 @@ Or, with the Supabase CLI (no Docker needed):
 npx supabase db push --project-ref <ref> -p <database password>
 ```
 
-### 3. Bring your data across (optional)
-
-Only needed if you have live Base44 data to keep.
-
-```bash
-BASE44_APP_ID=<app id> BASE44_API_KEY=<key> node scripts/export-from-base44.mjs
-```
-
-That writes `supabase/seed-from-base44.sql`. Review it, then run it in the SQL
-editor after the migrations. It preserves ids so foreign keys survive, and is
-safe to re-run.
-
-### 4. Set the function secrets
+### 3. Set the function secrets
 
 **Project Settings -> Edge Functions -> Secrets:**
 
@@ -110,7 +98,7 @@ safe to re-run.
 
 `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically.
 
-### 5. Deploy the API
+### 4. Deploy the API
 
 ```bash
 npx supabase functions deploy api --project-ref <ref> --no-verify-jwt --use-api
@@ -121,7 +109,7 @@ Supabase's JWT gate would reject every legitimate request, and the public
 endpoints (login, register, rsvp-submit) would stop working entirely.
 `--use-api` bundles server-side so Docker is not required.
 
-### 6. Point the frontend at it
+### 5. Point the frontend at it
 
 Copy `.env.example` to `.env.local`:
 

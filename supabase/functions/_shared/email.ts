@@ -1,11 +1,11 @@
 // Transactional email for signup verification and password resets.
 //
-// Resend only. The Base44 build had a fallback to that platform's built-in
-// mailer, which documented itself as sending "to registered users" - a brand new
-// connect3 signup is not one, so it was never a dependable path. With that gone
-// there is one provider and one failure mode: if RESEND_API_KEY is missing or a
-// send fails, the caller is told the code could not be delivered rather than
-// being left waiting for mail that will never arrive.
+// Resend only, with no fallback. An earlier backend fell back to a platform
+// mailer that delivered only to accounts already registered with that platform,
+// which a brand new connect3 signup never is, so it was never dependable. One
+// provider means one failure mode: if RESEND_API_KEY is missing or a send fails,
+// the caller is told the code could not be delivered rather than being left
+// waiting for mail that will never arrive.
 
 export interface SendResult {
   sent: boolean;

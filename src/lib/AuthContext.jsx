@@ -1,7 +1,7 @@
 // connect3's own session state.
 //
-// Replaces the previous Base44 flow, which bounced people to a hosted login page
-// on another domain and could not create accounts from inside the app.
+// Sign-up, sign-in, verification and recovery all happen on this domain. There
+// is no hosted login page anywhere in the flow.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { api, clearToken, getToken, setToken } from '@/lib/api';

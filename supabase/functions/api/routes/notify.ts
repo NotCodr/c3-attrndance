@@ -1,9 +1,9 @@
 // Event-completion summary.
 //
-// Previously a Base44 workflow pointed at a function named
-// sendEventCompletionSummary that had never been deployed, so every completed
-// event silently notified nobody. It now runs inline from the status transition
-// in the data gateway, so there is no separate artefact to fall out of sync.
+// An earlier backend drove this from a workflow pointing at a function that had
+// never been deployed, so every completed event silently notified nobody. It now
+// runs inline from the status transition in the data gateway, so there is no
+// separate artefact to fall out of sync.
 
 import { db } from "../../_shared/db.ts";
 import { eventSummaryEmail, sendEmail } from "../../_shared/email.ts";

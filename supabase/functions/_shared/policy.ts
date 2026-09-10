@@ -30,8 +30,8 @@ interface EntityRule {
   serverOwned?: string[];
 }
 
-// The keys stay the Base44 entity names so the React client did not need to
-// change when the backend moved.
+// The keys are the entity names the React client already used, which is why the
+// frontend needed no changes when the backend moved.
 export const RULES: Record<string, EntityRule> = {
   // Public: the /p/:slug page and the RSVP form need it. Contact addresses are
   // committee-only, so they are stripped for outsiders.

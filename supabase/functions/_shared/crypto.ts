@@ -1,7 +1,7 @@
 // Password hashing, token minting and constant-time comparison.
 //
-// Everything here uses the Web Crypto API, which is what the Base44 function
-// runtime exposes. There is no npm crypto dependency to keep in sync, and
+// Everything here uses the Web Crypto API, which the Deno function runtime
+// exposes directly. There is no npm crypto dependency to keep in sync, and
 // SubtleCrypto is async-only in this runtime.
 
 const enc = new TextEncoder();
