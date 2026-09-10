@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/lib/AuthContext';
 import { ScanLine, FileText, Receipt, ArrowRight, Github, Search } from 'lucide-react';
 import Logo from '@/components/Logo';
 import Decorations from '@/components/Decorations';
@@ -9,6 +10,8 @@ function Section({ children, className = '' }) {
 }
 
 export default function Landing() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen text-foreground">
       {/* Nav */}
@@ -18,8 +21,8 @@ export default function Landing() {
             <Logo size={44} />
             <span className="font-display font-bold text-2xl tracking-tight">connect3</span>
           </Link>
-          <Link to="/dashboard" className="c3-btn-primary">
-            sign in <ArrowRight className="w-4 h-4" />
+          <Link to={user ? '/dashboard' : '/login'} className="c3-btn-primary">
+            {user ? 'my clubs' : 'sign in'} <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </header>
@@ -42,11 +45,11 @@ export default function Landing() {
             find events, run clubs, file grants — all-in-one. Built for UniMelb clubs first.
           </p>
           <div className="mt-10 flex items-center justify-center gap-3 flex-wrap">
-            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
-              sign up <ArrowRight className="w-4 h-4" />
+            <Link to={user ? '/dashboard' : '/signup'} className="c3-btn-primary text-base px-7 py-3.5">
+              {user ? 'my clubs' : 'start a club'} <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link to="/dashboard" className="c3-btn-secondary text-base px-7 py-3.5">
-              <Search className="w-4 h-4" /> search
+            <Link to="/explore" className="c3-btn-secondary text-base px-7 py-3.5">
+              <Search className="w-4 h-4" /> find an event
             </Link>
           </div>
         </Section>
@@ -115,7 +118,7 @@ export default function Landing() {
             <p className="text-muted-foreground mb-8 max-w-md mx-auto">
               free for student clubs. set up in under 5 minutes.
             </p>
-            <Link to="/dashboard" className="c3-btn-primary text-base px-7 py-3.5">
+            <Link to={user ? '/dashboard' : '/signup'} className="c3-btn-primary text-base px-7 py-3.5">
               get started <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -133,7 +136,7 @@ export default function Landing() {
             <Link to="/privacy" className="hover:text-foreground">privacy</Link>
             <Link to="/terms" className="hover:text-foreground">terms</Link>
             <a href="mailto:hello@connect3.app" className="hover:text-foreground">contact</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-foreground inline-flex items-center gap-1">
+            <a href="https://github.com/NotCodr/c3-attrndance" target="_blank" rel="noreferrer" className="hover:text-foreground inline-flex items-center gap-1">
               <Github className="w-3.5 h-3.5" /> github
             </a>
           </div>

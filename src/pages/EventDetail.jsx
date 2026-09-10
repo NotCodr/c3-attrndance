@@ -3,7 +3,7 @@ import { Link, useParams, useNavigate, useOutletContext } from 'react-router-dom
 import { db } from '@/api/db';
 import { getMyRoleInClub, canEditEvents, canScan, canManageAcquittal } from '@/lib/clubs';
 import { formatEventTimeRange, formatMoneyCents, randomToken, slugify } from '@/lib/format';
-import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Copy, AlertTriangle, X, Receipt } from 'lucide-react';
+import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Copy, AlertTriangle, X, Receipt, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateAttendancePdf } from '@/lib/pdf';
 
@@ -90,6 +90,11 @@ export default function EventDetail() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
+          {canEditEvents(role) && event.status !== 'cancelled' && (
+            <Link to={`/c/${clubSlug}/events/${event.id}/edit`} className="c3-btn-secondary">
+              <Pencil className="w-3.5 h-3.5" /> edit
+            </Link>
+          )}
           {event.status === 'draft' && canEditEvents(role) && (
             <button onClick={publish} className="c3-btn-primary">publish</button>
           )}

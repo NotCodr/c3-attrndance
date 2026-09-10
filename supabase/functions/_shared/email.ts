@@ -40,16 +40,23 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
-const SHELL = (body: string) => `
+const SIGNUP_FOOTER =
+  "You received this because someone used this address to sign up for connect3. " +
+  "If that was not you, you can ignore this email.";
+
+const SHELL = (body: string, footer: string = SIGNUP_FOOTER) => `
 <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#0a0a0f">
   <p style="font-size:20px;font-weight:700;margin:0 0 24px">connect3</p>
   ${body}
   <hr style="border:none;border-top:1px solid #e5e5e8;margin:32px 0 16px" />
-  <p style="font-size:12px;color:#6b6b76;margin:0">
-    You received this because someone used this address to sign up for connect3.
-    If that was not you, you can ignore this email.
-  </p>
+  <p style="font-size:12px;color:#6b6b76;margin:0">${footer}</p>
 </div>`;
+
+const button = (href: string, label: string) =>
+  `<p style="margin:0 0 20px"><a href="${href}" style="display:inline-block;background:#b5a8f0;color:#0a0a0f;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px">${label}</a></p>`;
+
+const detailRow = (label: string, value: string) =>
+  `<tr><td style="padding:5px 0;color:#6b6b76;font-size:13px;white-space:nowrap;padding-right:16px">${label}</td><td style="padding:5px 0;font-size:13px">${value}</td></tr>`;
 
 export function verificationEmail(code: string): { subject: string; html: string } {
   return {
@@ -112,5 +119,89 @@ export function eventSummaryEmail(v: {
       </table>
       ${v.grantCategory ? `<p style="font-size:13px;color:#6b6b76;margin:24px 0 0">This event was grant funded, so an acquittal pack is due to ${v.unionName || "your union"}.</p>` : ""}
     `),
+  };
+}
+
+const ATTENDEE_FOOTER =
+  "You received this because you RSVPed to this event with connect3.";
+
+/**
+ * The attendee's ticket.
+ *
+ * Links to a page rather than embedding the QR as an image: most mail clients
+ * block inline base64 images, and a link also gives the attendee somewhere to
+ * come back to when they inevitably close the tab.
+ */
+export function ticketEmail(v: {
+  title: string; clubName: string; whenText: string; location: string;
+  ticketUrl: string; waitlisted: boolean;
+}): { subject: string; html: string } {
+  const details = `
+    <table style="border-collapse:collapse;margin:0 0 20px">
+      ${detailRow("When", v.whenText)}
+      ${detailRow("Where", v.location)}
+      ${detailRow("Club", v.clubName)}
+    </table>`;
+
+  if (v.waitlisted) {
+    return {
+      subject: "You are on the waitlist for " + v.title,
+      html: SHELL(`
+        <p style="font-size:17px;font-weight:600;margin:0 0 4px">${v.title}</p>
+        <p style="font-size:14px;color:#6b6b76;margin:0 0 20px">This event is full, so you are on the waitlist. We will email you if a place opens up.</p>
+        ${details}
+        ${button(v.ticketUrl, "View your place")}
+        <p style="font-size:12px;color:#6b6b76;margin:0">Keep this link. You can check your place or withdraw from it here.</p>
+      `, ATTENDEE_FOOTER),
+    };
+  }
+
+  return {
+    subject: "You are going to " + v.title,
+    html: SHELL(`
+      <p style="font-size:17px;font-weight:600;margin:0 0 4px">${v.title}</p>
+      <p style="font-size:14px;color:#6b6b76;margin:0 0 20px">You are on the list. Show your QR code at the door.</p>
+      ${details}
+      ${button(v.ticketUrl, "Open your ticket")}
+      <p style="font-size:12px;color:#6b6b76;margin:0">Keep this link. It has your QR code, and you can cancel from there if your plans change.</p>
+    `, ATTENDEE_FOOTER),
+  };
+}
+
+/** Sent when a cancellation frees a seat and the next person is promoted. */
+export function waitlistPromotedEmail(v: {
+  title: string; whenText: string; location: string; ticketUrl: string;
+}): { subject: string; html: string } {
+  return {
+    subject: "A place opened up at " + v.title,
+    html: SHELL(`
+      <p style="font-size:17px;font-weight:600;margin:0 0 4px">${v.title}</p>
+      <p style="font-size:14px;color:#6b6b76;margin:0 0 20px">Someone cancelled, so you are off the waitlist and on the list.</p>
+      <table style="border-collapse:collapse;margin:0 0 20px">
+        ${detailRow("When", v.whenText)}
+        ${detailRow("Where", v.location)}
+      </table>
+      ${button(v.ticketUrl, "Open your ticket")}
+      <p style="font-size:12px;color:#6b6b76;margin:0">If you can no longer make it, please cancel so the place can go to someone else.</p>
+    `, ATTENDEE_FOOTER),
+  };
+}
+
+/** Sent when a committee member adds someone to a club. */
+export function committeeInviteEmail(v: {
+  clubName: string; role: string; invitedBy: string; signInUrl: string; isNewUser: boolean;
+}): { subject: string; html: string } {
+  return {
+    subject: v.invitedBy + " added you to " + v.clubName + " on connect3",
+    html: SHELL(`
+      <p style="font-size:15px;margin:0 0 8px"><strong>${v.invitedBy}</strong> added you to <strong>${v.clubName}</strong> as <strong>${v.role}</strong>.</p>
+      <p style="font-size:13px;color:#6b6b76;margin:0 0 20px">connect3 runs the club's events, door check-in and grant acquittals.</p>
+      ${button(v.signInUrl, v.isNewUser ? "Create your account" : "Sign in")}
+      <p style="font-size:12px;color:#6b6b76;margin:0">
+        ${v.isNewUser
+          ? "Use this email address when you sign up, so your access connects automatically."
+          : "You already have a connect3 account. Sign in and the club will be waiting."}
+      </p>
+    `, "You received this because a connect3 club committee added this address."),
   };
 }

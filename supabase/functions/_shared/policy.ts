@@ -77,11 +77,18 @@ export function isPubliclyVisible(entity: string, row: Record<string, unknown>):
   return false;
 }
 
+/**
+ * Provenance columns hold the email of whoever created the row, so they leak a
+ * committee member's personal address on any publicly readable entity. Stripped
+ * for every entity rather than listed per-entity, because the next public table
+ * would otherwise leak it again by omission.
+ */
+const ALWAYS_REDACT = ["created_by", "created_by_id"];
+
 export function redactForOutsider(entity: string, row: Record<string, unknown>): Record<string, unknown> {
-  const rule = RULES[entity];
-  if (!rule?.publicRedact) return row;
   const copy = { ...row };
-  for (const f of rule.publicRedact) delete copy[f];
+  for (const f of ALWAYS_REDACT) delete copy[f];
+  for (const f of RULES[entity]?.publicRedact || []) delete copy[f];
   return copy;
 }
 

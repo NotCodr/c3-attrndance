@@ -13,7 +13,7 @@ import { accountExistsEmail, resetEmail, sendEmail, verificationEmail } from "..
 import {
   issueSession, publicUser, resolveActor, revokeAllSessions, type AppUserRecord,
 } from "../../_shared/session.ts";
-import { clampText, isValidEmail, normaliseEmail, passwordProblem } from "../../_shared/http.ts";
+import { appOrigin, clampText, isValidEmail, normaliseEmail, passwordProblem } from "../../_shared/http.ts";
 
 const CODE_TTL_MIN = 15;
 const RESET_TTL_MIN = 60;
@@ -24,20 +24,30 @@ const LOCKOUT_MIN = 15;
 
 export const authRoutes = new Hono();
 
+/**
+ * Marks any club invitations for this address as accepted.
+ *
+ * A committee adds someone by email before that person has an account, so the
+ * membership row exists first and accepted_at stays null. Previously nothing
+ * ever filled it in, so invited members showed as "pending" forever, even while
+ * actively using the app. Signing in is the acceptance.
+ *
+ * Also backfills the member's name, which the committee list has no other way
+ * of learning.
+ */
+async function acceptPendingMemberships(email: string, fullName?: string | null) {
+  const patch: Record<string, unknown> = { accepted_at: new Date().toISOString() };
+  if (fullName) patch.full_name = fullName;
+  await db().from("club_memberships")
+    .update(patch)
+    .eq("user_email", email)
+    .is("accepted_at", null);
+}
+
 const findUser = (email: string) =>
   // Equality, not ILIKE: emails are normalised to lowercase by a database
   // trigger, and ILIKE would treat "_" or "%" in an address as wildcards.
   one<AppUserRecord>(db().from("app_users").select("*").eq("email", email).limit(1));
-
-function appOrigin(req: Request): string {
-  const configured = Deno.env.get("APP_ORIGIN");
-  if (configured) return configured.replace(/\/$/, "");
-  const origin = req.headers.get("origin") || req.headers.get("referer");
-  if (origin) {
-    try { return new URL(origin).origin; } catch { /* fall through */ }
-  }
-  return "http://localhost:5173";
-}
 
 /**
  * Starts a signup. The response is identical whether or not the address already
@@ -134,6 +144,8 @@ authRoutes.post("/verify-email", async (c) => {
     last_login_at: new Date().toISOString(),
   }).eq("id", user.id);
 
+  await acceptPendingMemberships(email, user.full_name as string | null);
+
   const token = randomToken();
   await issueSession(user.id, token, c.req.header("user-agent"));
   return c.json({ ok: true, token, user: publicUser({ ...user, email_verified: true }) });
@@ -216,6 +228,8 @@ authRoutes.post("/login", async (c) => {
   await db().from("app_users").update({
     failed_login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
   }).eq("id", user.id);
+
+  await acceptPendingMemberships(email, user.full_name as string | null);
 
   const token = randomToken();
   await issueSession(user.id, token, c.req.header("user-agent"));

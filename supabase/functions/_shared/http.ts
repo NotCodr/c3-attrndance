@@ -59,3 +59,44 @@ export function clampText(value: unknown, max: number): string | undefined {
   const t = value.trim();
   return t ? t.slice(0, max) : undefined;
 }
+
+const MELBOURNE = "Australia/Melbourne";
+
+/**
+ * Absolute origin of the frontend, for links in email.
+ *
+ * APP_ORIGIN when configured; otherwise the origin the request came from, so
+ * local development and preview deploys work without extra setup.
+ */
+export function appOrigin(req: Request): string {
+  const configured = Deno.env.get("APP_ORIGIN");
+  if (configured) return configured.replace(/\/$/, "");
+  const origin = req.headers.get("origin") || req.headers.get("referer");
+  if (origin) {
+    try {
+      return new URL(origin).origin;
+    } catch { /* fall through */ }
+  }
+  return "http://localhost:5173";
+}
+
+/** Human-readable event time, always in Melbourne — the clubs are all there. */
+export function formatEventWhen(startsAt: string, endsAt?: string | null): string {
+  const start = new Date(startsAt);
+  const date = start.toLocaleDateString("en-AU", {
+    timeZone: MELBOURNE, weekday: "long", day: "numeric", month: "long",
+  });
+  const time = (d: Date) =>
+    d.toLocaleTimeString("en-AU", { timeZone: MELBOURNE, hour: "numeric", minute: "2-digit", hour12: true });
+  if (!endsAt) return `${date}, ${time(start)}`;
+  const end = new Date(endsAt);
+  const sameDay = start.toDateString() === end.toDateString();
+  return sameDay
+    ? `${date}, ${time(start)} – ${time(end)}`
+    : `${date}, ${time(start)} – ${end.toLocaleDateString("en-AU", { timeZone: MELBOURNE, day: "numeric", month: "long" })}, ${time(end)}`;
+}
+
+/** The attendee's durable link back to their QR code. */
+export function ticketUrl(origin: string, token: string): string {
+  return `${origin}/ticket?t=${encodeURIComponent(token)}`;
+}

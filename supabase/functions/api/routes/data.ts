@@ -12,6 +12,8 @@ import {
   canActOnClub, clubIdsWithRole, isPubliclyVisible, redactForOutsider, ruleFor, stripServerOwned,
 } from "../../_shared/policy.ts";
 import { notifyEventCompleted } from "./notify.ts";
+import { committeeInviteEmail, sendEmail } from "../../_shared/email.ts";
+import { appOrigin } from "../../_shared/http.ts";
 
 const MAX_LIMIT = 500;
 
@@ -186,6 +188,13 @@ dataRoutes.post("/data", async (c) => {
       return c.json({ error: "duplicate", message: "That already exists." }, 409);
     }
     if (error) throw new Error(error.message);
+
+    // Adding someone to a committee used to be silent: a row appeared and the
+    // person was never told, so they had no way to know they should sign up.
+    if (entity === "ClubMembership" && created.user_email !== actor.user.email) {
+      await notifyInvitee(created, actor, c.req.raw).catch((e) => console.error("[invite] failed:", e));
+    }
+
     return c.json({ data: created });
   }
 
@@ -238,3 +247,32 @@ dataRoutes.post("/data", async (c) => {
 
   return c.json({ data: updated });
 });
+
+/**
+ * Tells someone they have been added to a club.
+ *
+ * The message differs depending on whether they already have an account,
+ * because the action they need to take differs: sign up with this exact address
+ * versus simply sign in. Never reveals account existence to anyone but the
+ * address owner, who is the only recipient.
+ */
+async function notifyInvitee(membership: Record<string, any>, actor: Actor, req: Request) {
+  const supabase = db();
+
+  const [{ data: club }, { data: existingUser }] = await Promise.all([
+    supabase.from("clubs").select("name").eq("id", membership.club_id).maybeSingle(),
+    supabase.from("app_users").select("id").eq("email", membership.user_email).maybeSingle(),
+  ]);
+  if (!club) return;
+
+  const origin = appOrigin(req);
+  const isNewUser = !existingUser;
+  const mail = committeeInviteEmail({
+    clubName: club.name,
+    role: membership.role,
+    invitedBy: (actor.user.full_name as string) || (actor.user.email as string),
+    signInUrl: origin + (isNewUser ? "/signup" : "/login"),
+    isNewUser,
+  });
+  await sendEmail(membership.user_email, mail.subject, mail.html);
+}

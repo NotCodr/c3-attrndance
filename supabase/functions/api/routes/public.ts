@@ -6,7 +6,10 @@
 import { Hono } from "jsr:@hono/hono@4";
 import { randomToken } from "../../_shared/crypto.ts";
 import { db, isUniqueViolation } from "../../_shared/db.ts";
-import { clampText, isValidEmail, normaliseEmail } from "../../_shared/http.ts";
+import {
+  appOrigin, clampText, formatEventWhen, isValidEmail, normaliseEmail, ticketUrl,
+} from "../../_shared/http.ts";
+import { sendEmail, ticketEmail, waitlistPromotedEmail } from "../../_shared/email.ts";
 import { hasAtLeastRole, resolveActor, roleInClub } from "../../_shared/session.ts";
 
 export const publicRoutes = new Hono();
@@ -72,6 +75,7 @@ publicRoutes.post("/rsvp-submit", async (c) => {
     const status = existing.status === "cancelled" ? await seatStatus() : existing.status;
     const { data: updated } = await supabase.from("rsvps")
       .update({ ...fields, status }).eq("id", existing.id).select().single();
+    await mailTicket(c.req.raw, event, email, existing.rsvp_token, updated.status);
     return c.json({ ok: true, status: updated.status, rsvp_token: existing.rsvp_token, updated: true });
   }
 
@@ -86,6 +90,7 @@ publicRoutes.post("/rsvp-submit", async (c) => {
   if (isUniqueViolation(error)) {
     const { data: row } = await supabase.from("rsvps")
       .select("*").eq("event_id", event.id).eq("email", email).maybeSingle();
+    if (row?.rsvp_token) await mailTicket(c.req.raw, event, email, row.rsvp_token, row.status);
     return c.json({ ok: true, status: row?.status || "confirmed", rsvp_token: row?.rsvp_token, updated: true });
   }
   if (error) throw new Error(error.message);
@@ -101,12 +106,43 @@ publicRoutes.post("/rsvp-submit", async (c) => {
     const index = (confirmed || []).findIndex((r) => r.id === created.id);
     if (index >= 0 && index >= event.capacity) {
       await supabase.from("rsvps").update({ status: "waitlisted" }).eq("id", created.id);
+      await mailTicket(c.req.raw, event, email, rsvpToken, "waitlisted");
       return c.json({ ok: true, status: "waitlisted", rsvp_token: rsvpToken });
     }
   }
 
+  await mailTicket(c.req.raw, event, email, rsvpToken, created.status);
   return c.json({ ok: true, status: created.status, rsvp_token: rsvpToken });
 });
+
+/**
+ * Emails the attendee a link back to their ticket.
+ *
+ * The RSVP page used to claim "Confirmation sent to ..." while sending nothing,
+ * and the QR existed only on screen -- close the tab and it was gone. This makes
+ * that claim true and gives them a durable way back to it.
+ *
+ * Failure is logged, not surfaced: the RSVP itself succeeded, and telling
+ * someone their place did not register because a mail server was slow would be
+ * worse than a missing email.
+ */
+async function mailTicket(
+  req: Request, event: Record<string, any>, email: string,
+  token: string, status: string,
+) {
+  if (status === "cancelled") return;
+  const { data: club } = await db().from("clubs").select("name").eq("id", event.club_id).maybeSingle();
+  const mail = ticketEmail({
+    title: event.title,
+    clubName: club?.name || "the club",
+    whenText: formatEventWhen(event.starts_at, event.ends_at),
+    location: event.location_name,
+    ticketUrl: ticketUrl(appOrigin(req), token),
+    waitlisted: status === "waitlisted",
+  });
+  const result = await sendEmail(email, mail.subject, mail.html);
+  if (!result.sent) console.error("[rsvp] ticket email failed for", email, result.error);
+}
 
 /**
  * Records attendance at the door.
@@ -185,3 +221,110 @@ publicRoutes.post("/check-in", async (c) => {
 
   return c.json({ ok: true, duplicate: false, full_name: fullName, checked_in_at: checkIn.checked_in_at });
 });
+
+/**
+ * Looks up an RSVP by its token. Public, because attendees are not users.
+ *
+ * The token is a 256-bit random string that only ever reaches the person who
+ * RSVPed, so it acts as the credential for this one record. The response is
+ * deliberately narrow: enough to render the ticket, nothing about anyone else.
+ */
+publicRoutes.post("/rsvp-lookup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const token = typeof body.token === "string" ? body.token.trim() : "";
+  if (!token) return c.json({ error: "invalid_token", message: "This ticket link is not valid." }, 400);
+
+  const supabase = db();
+  const { data: rsvp } = await supabase.from("rsvps")
+    .select("id,event_id,full_name,email,status,rsvp_token").eq("rsvp_token", token).maybeSingle();
+  if (!rsvp) return c.json({ error: "not_found", message: "This ticket link is not valid." }, 404);
+
+  const { data: event } = await supabase.from("events")
+    .select("id,title,starts_at,ends_at,location_name,location_address,status,cover_image_url,club_id")
+    .eq("id", rsvp.event_id).maybeSingle();
+  if (!event) return c.json({ error: "not_found", message: "This ticket link is not valid." }, 404);
+
+  const { data: club } = await supabase.from("clubs")
+    .select("name,slug,logo_url").eq("id", event.club_id).maybeSingle();
+
+  // Whether they were checked in, so the ticket can say so rather than showing
+  // a QR that has already been used.
+  const { data: checkIn } = await supabase.from("check_ins")
+    .select("checked_in_at").eq("rsvp_id", rsvp.id).maybeSingle();
+
+  return c.json({
+    rsvp: {
+      full_name: rsvp.full_name,
+      email: rsvp.email,
+      status: rsvp.status,
+      rsvp_token: rsvp.rsvp_token,
+      checked_in_at: checkIn?.checked_in_at || null,
+    },
+    event,
+    club: club ? { name: club.name, slug: club.slug, logo_url: club.logo_url } : null,
+  });
+});
+
+/**
+ * Lets an attendee withdraw, and promotes the next person off the waitlist.
+ *
+ * Without this the headcount drifts: people who cannot come simply do not turn
+ * up, the seat is never released, and the waitlist promise ("we will email you
+ * if a place opens up") stays hypothetical.
+ */
+publicRoutes.post("/rsvp-cancel", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const token = typeof body.token === "string" ? body.token.trim() : "";
+  if (!token) return c.json({ error: "invalid_token", message: "This ticket link is not valid." }, 400);
+
+  const supabase = db();
+  const { data: rsvp } = await supabase.from("rsvps").select("*").eq("rsvp_token", token).maybeSingle();
+  if (!rsvp) return c.json({ error: "not_found", message: "This ticket link is not valid." }, 404);
+  if (rsvp.status === "cancelled") return c.json({ ok: true, status: "cancelled", already: true });
+
+  const { data: event } = await supabase.from("events").select("*").eq("id", rsvp.event_id).maybeSingle();
+  if (event && event.ends_at && new Date(event.ends_at).getTime() < Date.now()) {
+    return c.json({ error: "event_ended", message: "This event has already ended." }, 409);
+  }
+
+  // Refuse once they are through the door: the attendance record is what the
+  // grant acquittal is built from, and it should reflect who actually came.
+  const { data: checkIn } = await supabase.from("check_ins")
+    .select("id").eq("rsvp_id", rsvp.id).maybeSingle();
+  if (checkIn) {
+    return c.json({ error: "already_checked_in", message: "You have already checked in to this event." }, 409);
+  }
+
+  const freedASeat = rsvp.status === "confirmed";
+  await supabase.from("rsvps").update({ status: "cancelled" }).eq("id", rsvp.id);
+
+  if (freedASeat && event?.capacity) {
+    await promoteFromWaitlist(c.req.raw, event);
+  }
+  return c.json({ ok: true, status: "cancelled" });
+});
+
+/** Moves the longest-waiting person into the freed seat and tells them. */
+async function promoteFromWaitlist(req: Request, event: Record<string, any>) {
+  const supabase = db();
+  const { count } = await supabase.from("rsvps")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", event.id).eq("status", "confirmed");
+  if ((count || 0) >= event.capacity) return;
+
+  const { data: next } = await supabase.from("rsvps")
+    .select("*").eq("event_id", event.id).eq("status", "waitlisted")
+    .order("created_date", { ascending: true }).limit(1).maybeSingle();
+  if (!next) return;
+
+  await supabase.from("rsvps").update({ status: "confirmed" }).eq("id", next.id);
+
+  const mail = waitlistPromotedEmail({
+    title: event.title,
+    whenText: formatEventWhen(event.starts_at, event.ends_at),
+    location: event.location_name,
+    ticketUrl: ticketUrl(appOrigin(req), next.rsvp_token),
+  });
+  const result = await sendEmail(next.email, mail.subject, mail.html);
+  if (!result.sent) console.error("[rsvp] promotion email failed for", next.email, result.error);
+}

@@ -62,7 +62,7 @@ export default function PublicRSVP() {
         website, // honeypot; the server decides what to do with it
       });
 
-      setConfirmed({ status: result.status, email: lcEmail });
+      setConfirmed({ status: result.status, email: lcEmail, rsvp_token: result.rsvp_token });
 
       if (result.status === 'confirmed' && result.rsvp_token) {
         const url = `${window.location.origin}/rsvp/${event.id}#token=${result.rsvp_token}`;
@@ -116,7 +116,7 @@ export default function PublicRSVP() {
             </h2>
             <p className="text-sm text-muted-foreground mb-5">
               {confirmed.status === 'waitlisted'
-                ? "We'll email you if a spot opens up."
+                ? "The event is full. We'll email you if a place opens up."
                 : 'Save this QR code — scan it at the door.'}
             </p>
             {qrDataUrl && confirmed.status === 'confirmed' && (
@@ -124,7 +124,14 @@ export default function PublicRSVP() {
                 <img src={qrDataUrl} alt="check-in QR code" className="w-56 h-56" />
               </div>
             )}
-            <p className="mt-5 text-xs text-muted-foreground">Confirmation sent to <span className="text-foreground">{confirmed.email}</span></p>
+            <p className="mt-5 text-xs text-muted-foreground">
+              We've emailed your ticket to <span className="text-foreground">{confirmed.email}</span>.
+            </p>
+            {confirmed.rsvp_token && (
+              <a href={`/ticket?t=${encodeURIComponent(confirmed.rsvp_token)}`} className="c3-btn-secondary text-xs mt-4">
+                open my ticket
+              </a>
+            )}
           </div>
         ) : (
           <form onSubmit={submit} className="c3-card p-6 space-y-4">
