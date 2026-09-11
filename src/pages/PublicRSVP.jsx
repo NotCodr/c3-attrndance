@@ -7,7 +7,7 @@ import remarkGfm from 'remark-gfm';
 import { db, submitRsvp } from '@/api/db';
 import { formatEventTimeRange } from '@/lib/format';
 import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
-import AnimatedBackdrop from '@/components/AnimatedBackdrop';
+import EventBackdrop from '@/components/EventBackdrop';
 import ShaderBackground from '@/components/ui/shader-background';
 import ConfirmedTicket from '@/components/ConfirmedTicket';
 import RsvpButton from '@/components/RsvpButton';
@@ -87,7 +87,7 @@ export default function PublicRSVP() {
   };
 
   if (loading) {
-    return <Centered><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></Centered>;
+    return <Centered><Loader2 className="w-5 h-5 animate-spin text-white/80" /></Centered>;
   }
   if (notFound) return <StatusPage note="We could not find that event." />;
   if (event.status === 'cancelled') {
@@ -135,7 +135,7 @@ export default function PublicRSVP() {
 
   return (
     <div className="min-h-screen">
-      <AnimatedBackdrop />
+      <EventBackdrop />
 
       <div className="max-w-xl mx-auto px-5 pt-10 pb-20 sm:pt-16">
         <motion.div {...fade(0)} className="mb-8">
@@ -143,18 +143,18 @@ export default function PublicRSVP() {
             <img
               src={event.cover_image_url}
               alt=""
-              className="w-full aspect-[16/9] rounded-2xl object-cover mb-7 border border-border/60 shadow-xl shadow-black/5"
+              className="w-full aspect-[16/9] rounded-2xl object-cover mb-7 border border-white/30 shadow-2xl shadow-black/20"
             />
           )}
 
           <div className="flex items-center gap-2 mb-3">
             {club?.logo_url && (
-              <img src={club.logo_url} alt="" className="w-6 h-6 rounded-md object-cover border border-border" />
+              <img src={club.logo_url} alt="" className="w-6 h-6 rounded-md object-cover border border-white/40" />
             )}
-            <p className="text-xs font-semibold text-primary tracking-wider uppercase">{club?.name}</p>
+            <p className="text-xs font-semibold text-white/85 tracking-wider uppercase">{club?.name}</p>
           </div>
 
-          <h1 className="font-display font-bold text-4xl sm:text-5xl leading-[1.05] text-balance">
+          <h1 className="font-display font-bold text-4xl sm:text-5xl leading-[1.05] text-balance text-white [text-shadow:0_2px_28px_rgba(20,0,60,0.45)]">
             {event.title}
           </h1>
         </motion.div>
@@ -169,7 +169,7 @@ export default function PublicRSVP() {
         {event.description && (
           <motion.div
             {...fade(2)}
-            className="prose prose-sm max-w-none mb-10 text-muted-foreground prose-headings:text-foreground prose-headings:font-display prose-a:text-primary prose-strong:text-foreground"
+            className="prose prose-sm max-w-none mb-8 rounded-2xl bg-white/85 backdrop-blur-md border border-white/60 shadow-xl shadow-black/10 p-5 sm:p-6 text-muted-foreground prose-headings:text-foreground prose-headings:font-display prose-a:text-primary prose-strong:text-foreground"
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{event.description}</ReactMarkdown>
           </motion.div>
@@ -256,8 +256,8 @@ export default function PublicRSVP() {
             </div>
           </motion.form>
 
-        <motion.p {...fade(4)} className="text-center text-xs text-muted-foreground mt-10">
-          <a href="/explore" className="hover:text-foreground transition-colors">more events on connect3</a>
+        <motion.p {...fade(4)} className="text-center text-xs text-white/80 mt-10 [text-shadow:0_1px_10px_rgba(20,0,60,0.45)]">
+          <a href="/explore" className="hover:text-white transition-colors">more events on connect3</a>
         </motion.p>
       </div>
     </div>
@@ -279,8 +279,8 @@ function Field({ label, htmlFor, hint, optional, children }) {
 
 function Chip({ icon: Icon, children }) {
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-card/80 backdrop-blur border border-border">
-      <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
+    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-white bg-white/15 backdrop-blur-md border border-white/25">
+      <Icon className="w-3.5 h-3.5 text-white/85 shrink-0" />
       {children}
     </span>
   );
@@ -289,7 +289,7 @@ function Chip({ icon: Icon, children }) {
 function Centered({ children }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <AnimatedBackdrop />
+      <EventBackdrop />
       {children}
     </div>
   );
@@ -298,7 +298,7 @@ function Centered({ children }) {
 function StatusPage({ title, club, note, reason }) {
   return (
     <div className="min-h-screen flex items-center justify-center px-6">
-      <AnimatedBackdrop />
+      <EventBackdrop />
       <motion.div
         initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
