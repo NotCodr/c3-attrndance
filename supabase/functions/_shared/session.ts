@@ -22,6 +22,7 @@ export interface AppUserRecord {
   id: string;
   email: string;
   full_name?: string | null;
+  phone?: string | null;
   status?: string;
   email_verified?: boolean;
   password_hash?: string;
@@ -121,6 +122,7 @@ export function publicUser(user: AppUserRecord) {
     id: user.id,
     email: user.email,
     full_name: user.full_name || null,
+    phone: user.phone || null,
     email_verified: !!user.email_verified,
   };
 }

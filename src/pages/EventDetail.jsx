@@ -5,7 +5,6 @@ import { getMyRoleInClub, canEditEvents, canScan, canManageAcquittal } from '@/l
 import { formatEventTimeRange, formatMoneyCents, randomToken, slugify } from '@/lib/format';
 import { Calendar, MapPin, Users, ScanLine, FileText, ExternalLink, Copy, AlertTriangle, X, Receipt, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import { generateAttendancePdf } from '@/lib/pdf';
 
 export default function EventDetail() {
   const { clubSlug, eventId } = useParams();
@@ -68,7 +67,13 @@ export default function EventDetail() {
     toast.success('Copied');
   };
   const downloadAttendance = async () => {
-    await generateAttendancePdf({ event, club, checkIns });
+    try {
+      // Loaded on demand: the PDF library is large and most visits never need it.
+      const { generateAttendancePdf } = await import('@/lib/pdf');
+      await generateAttendancePdf({ event, club, checkIns });
+    } catch (err) {
+      toast.error(err.message || 'Could not build the attendance PDF.');
+    }
   };
 
   const eventEnded = new Date(event.ends_at) < new Date();

@@ -60,6 +60,21 @@ export function clampText(value: unknown, max: number): string | undefined {
   return t ? t.slice(0, max) : undefined;
 }
 
+/**
+ * A phone number as typed, if it plausibly is one: 8 to 15 digits with an
+ * optional leading +, spaces, dashes and brackets. null for blank, false for
+ * anything else.
+ */
+export function cleanPhone(value: unknown): string | null | false {
+  if (value == null) return null;
+  if (typeof value !== "string") return false;
+  const t = value.trim().replace(/\s+/g, " ");
+  if (!t) return null;
+  if (t.length > 32 || !/^\+?[\d\s()-]+$/.test(t)) return false;
+  const digits = t.replace(/\D/g, "").length;
+  return digits >= 8 && digits <= 15 ? t : false;
+}
+
 const MELBOURNE = "Australia/Melbourne";
 
 /**

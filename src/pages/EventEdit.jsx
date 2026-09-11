@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { db } from '@/api/db';
+import { useAuth } from '@/lib/AuthContext';
 import { canEditEvents, getMyRoleInClub } from '@/lib/clubs';
-import { eventFields, eventToForm, validateEventForm } from '@/lib/events';
+import { contactFor, eventFields, eventToForm, rememberContactPhone, validateEventForm } from '@/lib/events';
 import EventFormFields from '@/components/EventFormFields';
 import { AlertTriangle, ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,18 +19,26 @@ export default function EventEdit() {
   const { clubSlug, eventId } = useParams();
   const { user } = useOutletContext() || {};
   const navigate = useNavigate();
+  const { refresh } = useAuth();
 
   const [event, setEvent] = useState(null);
   const [role, setRole] = useState(null);
   const [form, setForm] = useState(null);
   const [rsvpCount, setRsvpCount] = useState(0);
+  const [pastEvents, setPastEvents] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
       const ev = await db.Event.get(eventId);
       setEvent(ev);
-      setForm(eventToForm(ev));
+      const initial = eventToForm(ev);
+      // Events from before contacts existed: whoever edits it is the best guess.
+      const noContact = !initial.contactName && !initial.contactEmail && !initial.contactPhone;
+      setForm(noContact ? { ...initial, ...contactFor(user) } : initial);
+      db.Event.filter({ club_id: ev.club_id }, '-starts_at', 50)
+        .then((events) => setPastEvents(events.filter((e) => e.id !== ev.id)))
+        .catch(() => {});
       if (user?.email) setRole(await getMyRoleInClub(ev.club_id, user.email));
       if (ev.status === 'published') {
         const rsvps = await db.RSVP.filter({ event_id: eventId, status: 'confirmed' });
@@ -51,6 +60,7 @@ export default function EventEdit() {
     setSaving(true);
     try {
       await db.Event.update(event.id, eventFields(form));
+      if (await rememberContactPhone(form, user)) refresh();
       await db.AuditLog.create({
         club_id: event.club_id,
         event_id: event.id,
@@ -94,13 +104,15 @@ export default function EventEdit() {
         </div>
       )}
 
-      <EventFormFields form={form} onChange={setForm} clubId={event.club_id} />
+      <EventFormFields form={form} onChange={setForm} clubId={event.club_id} user={user} pastEvents={pastEvents} />
 
-      <div className="flex justify-end gap-2 pt-4">
-        <Link to={`/c/${clubSlug}/events/${event.id}`} className="c3-btn-ghost">cancel</Link>
-        <button onClick={save} disabled={saving} className="c3-btn-primary">
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />} save changes
-        </button>
+      <div className="sticky bottom-3 z-10 mt-4">
+        <div className="c3-card-soft p-2.5 flex items-center justify-end gap-2 shadow-sm [&>*]:whitespace-nowrap">
+          <Link to={`/c/${clubSlug}/events/${event.id}`} className="c3-btn-ghost">cancel</Link>
+          <button onClick={save} disabled={saving} className="c3-btn-primary">
+            {saving && <Loader2 className="w-4 h-4 animate-spin" />} save changes
+          </button>
+        </div>
       </div>
     </div>
   );

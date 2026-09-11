@@ -13,7 +13,7 @@ import { accountExistsEmail, resetEmail, sendEmail, verificationEmail } from "..
 import {
   issueSession, publicUser, resolveActor, revokeAllSessions, type AppUserRecord,
 } from "../../_shared/session.ts";
-import { appOrigin, clampText, isValidEmail, normaliseEmail, passwordProblem } from "../../_shared/http.ts";
+import { appOrigin, clampText, cleanPhone, isValidEmail, normaliseEmail, passwordProblem } from "../../_shared/http.ts";
 
 const CODE_TTL_MIN = 15;
 const RESET_TTL_MIN = 60;
@@ -338,4 +338,34 @@ authRoutes.post("/change-password", async (c) => {
     .update({ password_hash: await hashPassword(body.new_password) }).eq("id", actor.user.id);
   await revokeAllSessions(actor.user.id, actor.sessionId);
   return c.json({ ok: true });
+});
+
+/** The caller's own name and phone. Email is the login, so it stays put. */
+authRoutes.post("/profile", async (c) => {
+  const actor = await resolveActor(c.req.raw);
+  if (!actor) return c.json({ error: "unauthenticated", message: "Sign in to continue." }, 401);
+
+  const body = await c.req.json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return c.json({ error: "invalid_body", message: "Nothing to update." }, 400);
+  }
+
+  const patch: Record<string, unknown> = {};
+  if ("full_name" in body) {
+    const name = clampText(body.full_name, 120);
+    if (!name) return c.json({ error: "invalid_name", message: "Your name cannot be empty." }, 400);
+    patch.full_name = name;
+  }
+  if ("phone" in body) {
+    const phone = cleanPhone(body.phone);
+    if (phone === false) {
+      return c.json({ error: "invalid_phone", message: "Enter a phone number with 8 to 15 digits." }, 400);
+    }
+    patch.phone = phone;
+  }
+  if (!Object.keys(patch).length) return c.json({ error: "invalid_body", message: "Nothing to update." }, 400);
+
+  const { data, error } = await db().from("app_users").update(patch).eq("id", actor.user.id).select("*").single();
+  if (error || !data) return c.json({ error: "server_error", message: "Could not save your details." }, 500);
+  return c.json({ ok: true, user: publicUser(data as AppUserRecord) });
 });

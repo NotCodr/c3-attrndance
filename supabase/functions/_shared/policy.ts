@@ -41,7 +41,14 @@ export const RULES: Record<string, EntityRule> = {
     write: "admin",
     publicRedact: ["primary_contact_email", "treasurer_email", "umsu_affiliation_code"],
   },
-  Event: { table: "events", read: "public", write: "admin" },
+  // Public for the event page. The contact is for the union and the
+  // committee, not for anyone holding the link.
+  Event: {
+    table: "events",
+    read: "public",
+    write: "admin",
+    publicRedact: ["contact_name", "contact_email", "contact_phone"],
+  },
 
   ClubMembership: { table: "club_memberships", read: "scanner", write: "admin" },
   RSVP: { table: "rsvps", read: "scanner", write: "admin" },
