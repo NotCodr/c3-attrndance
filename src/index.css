@@ -118,6 +118,37 @@
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-secondary text-foreground border border-border;
   }
   .font-display { font-family: var(--font-display); }
+
+  /* Clubroom: ink outlines on hard offset shadows, the same material as the
+     stickers. Used by the app shell and the club overview.                   */
+  .ink-card {
+    @apply rounded-[22px] border-2 border-[hsl(var(--c3-ink))] bg-white shadow-[0_4px_0_0_hsl(var(--c3-ink))];
+  }
+  .ink-btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 border-[hsl(var(--c3-ink))] px-4 py-2 text-sm font-bold
+           shadow-[0_3px_0_0_hsl(var(--c3-ink))] transition-all hover:translate-y-px hover:shadow-[0_2px_0_0_hsl(var(--c3-ink))]
+           active:translate-y-[3px] active:shadow-none disabled:cursor-not-allowed disabled:opacity-60
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--c3-purple))] focus-visible:ring-offset-2;
+  }
+  .ink-btn-primary { @apply bg-[#8E6FE8] text-white; }
+  .ink-btn-dark {
+    @apply bg-[hsl(var(--c3-ink))] text-white shadow-[0_3px_0_0_#6D4FD8] hover:shadow-[0_2px_0_0_#6D4FD8];
+  }
+  .ink-btn-light { @apply bg-white text-[hsl(var(--c3-ink))]; }
+  .ink-link {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2 py-2 text-sm font-semibold text-[#3A3260] transition-colors hover:text-[#6D4FD8]
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--c3-purple))];
+  }
+}
+
+/* The Clubroom daylight: pastel fields over paper. */
+.c3-clubroom {
+  background:
+    radial-gradient(ellipse 60% 40% at 8% 0%, #CFF4FF 0%, transparent 62%),
+    radial-gradient(ellipse 55% 45% at 96% 4%, #E1D8FF 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 92% 98%, #FFF2C9 0%, transparent 62%),
+    #F7F4FF;
+  background-attachment: fixed;
 }
 
 @layer utilities {
