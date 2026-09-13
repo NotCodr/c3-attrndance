@@ -1,28 +1,36 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { motion, useReducedMotion } from 'motion/react';
 import QRCode from 'qrcode';
 import { api } from '@/lib/api';
-import { formatEventTimeRange } from '@/lib/format';
-import Logo from '@/components/Logo';
-import { AlertTriangle, Calendar, CheckCircle2, Clock, Loader2, MapPin } from 'lucide-react';
+import { editionFor, mapsUrl } from '@/lib/ticket';
+import EventShell, { GlassButton, GlassCard } from '@/components/EventShell';
+import TicketCard from '@/components/TicketCard';
+import CrtButton from '@/components/CrtButton';
+import AddToCalendar from '@/components/AddToCalendar';
+import { AlertTriangle, Info, Loader2, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
+
+const EASE = [0.16, 1, 0.3, 1];
 
 /**
  * An attendee's ticket, reachable from the link in their confirmation email.
  *
- * Previously the QR existed only in the tab where the RSVP was submitted, so
- * closing it lost the ticket for good. The token in the URL is the credential
- * for this one RSVP, which is why no sign-in is involved -- attendees are not
- * users of the app.
+ * The token in the URL is the credential for this one RSVP, which is why no
+ * sign-in is involved: attendees are not users of the app. The page wears the
+ * ticket's own colourway, the same one it was minted with after RSVPing.
  */
 export default function Ticket() {
   const [params] = useSearchParams();
   const token = params.get('t') || '';
+  const reduce = useReducedMotion();
+  const palette = useMemo(() => (token ? editionFor(token) : undefined), [token]);
 
   const [data, setData] = useState(null);
   const [qr, setQr] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
   const load = async () => {
@@ -31,9 +39,9 @@ export default function Ticket() {
       setData(result);
       if (result.rsvp.status === 'confirmed' && !result.rsvp.checked_in_at) {
         const url = `${window.location.origin}/rsvp/${result.event.id}#token=${result.rsvp.rsvp_token}`;
-        setQr(await QRCode.toDataURL(url, {
-          width: 280, margin: 1, color: { dark: '#0A0A0F', light: '#FFFFFF' },
-        }));
+        setQr(await QRCode.toDataURL(url, { width: 640, margin: 1, color: { dark: '#0A0A0F', light: '#FFFFFF' } }));
+      } else {
+        setQr('');
       }
     } catch (err) {
       setError(err.message || 'This ticket link is not valid.');
@@ -43,17 +51,20 @@ export default function Ticket() {
   };
 
   useEffect(() => {
-    if (!token) { setError('This ticket link is missing its code.'); setLoading(false); return; }
+    if (!token) {
+      setError('This ticket link is missing its code.');
+      setLoading(false);
+      return;
+    }
     load();
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const cancel = async () => {
-    if (!confirm('Cancel your place at this event?')) return;
     setCancelling(true);
     try {
       await api.call('rsvp-cancel', { token }, { auth: false });
       toast.success('Your place has been cancelled.');
-      setQr('');
+      setConfirming(false);
       await load();
     } catch (err) {
       toast.error(err.message || 'Could not cancel.');
@@ -62,115 +73,87 @@ export default function Ticket() {
     }
   };
 
-  if (loading) return <Shell><Loader2 className="w-5 h-5 animate-spin text-muted-foreground mx-auto" /></Shell>;
+  if (loading) {
+    return (
+      <EventShell palette={palette}>
+        <div className="grid min-h-[70vh] place-items-center"><Loader2 className="h-6 w-6 animate-spin text-white/80" /></div>
+      </EventShell>
+    );
+  }
 
   if (error) {
     return (
-      <Shell>
-        <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-        <p className="text-sm text-muted-foreground">{error}</p>
-        <p className="text-xs text-muted-foreground mt-4">
-          Open the link straight from your confirmation email, or RSVP again to get a new one.
-        </p>
-      </Shell>
+      <EventShell palette={palette}>
+        <main className="mx-auto grid min-h-[70vh] max-w-sm place-items-center px-5">
+          <GlassCard className="w-full p-8 text-center">
+            <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+            <h1 className="font-display text-xl font-bold">We couldn't open that ticket</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+            <p className="mt-3 text-xs text-muted-foreground">Open the link straight from your confirmation email, or RSVP again for a new one.</p>
+            <CrtButton to="/explore" size="sm" className="mt-6">Find events</CrtButton>
+          </GlassCard>
+        </main>
+      </EventShell>
     );
   }
 
-  const { rsvp, event, club } = data;
-  const ended = new Date(event.ends_at) < new Date();
+  const { rsvp, event } = data;
+  const ended = event.ends_at && new Date(event.ends_at) < new Date();
+  const live = event.status !== 'cancelled' && rsvp.status !== 'cancelled' && !ended;
+  const canCancel = live && !rsvp.checked_in_at;
+  const firstName = (rsvp.full_name || '').split(' ')[0];
+  const ticketLink = `${window.location.origin}/ticket?t=${encodeURIComponent(rsvp.rsvp_token)}`;
+  const fade = (i) => ({
+    initial: reduce ? { opacity: 0 } : { opacity: 0, y: 14 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.5, delay: reduce ? 0 : 0.1 + i * 0.08, ease: EASE },
+  });
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-md mx-auto px-4 py-10">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <Logo size={32} />
-          <span className="font-display font-bold text-lg tracking-tight">connect3</span>
-        </Link>
+    <EventShell palette={palette} navRight={<GlassButton to="/explore" className="h-9 px-3 text-xs">More events</GlassButton>}>
+      <main className="mx-auto max-w-md px-5 pb-16 pt-8 sm:pt-12">
+        <motion.div {...fade(0)} className="mb-6 text-center">
+          <p className="text-sm text-white/80">{firstName ? `Hi ${firstName}, here's your ticket` : "Here's your ticket"}</p>
+          <h1 className="sr-only">Your ticket for {event.title}</h1>
+        </motion.div>
 
-        <p className="text-xs text-primary tracking-wider uppercase text-center">{club?.name}</p>
-        <h1 className="font-display font-bold text-2xl mt-1 mb-5 text-center text-balance">{event.title}</h1>
+        <TicketCard data={data} qrDataUrl={qr} reveal />
 
-        <div className="c3-card p-5 mb-5 space-y-2 text-sm">
-          <p className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
-            {formatEventTimeRange(event.starts_at, event.ends_at)}
-          </p>
-          <p className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-muted-foreground shrink-0" />
-            <span>{event.location_name}{event.location_address && <span className="text-muted-foreground"> · {event.location_address}</span>}</span>
-          </p>
-        </div>
-
-        <StatusCard rsvp={rsvp} qr={qr} ended={ended} eventCancelled={event.status === 'cancelled'} />
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Booked as {rsvp.full_name} · {rsvp.email}
-        </p>
-
-        {rsvp.status !== 'cancelled' && !rsvp.checked_in_at && !ended && event.status !== 'cancelled' && (
-          <button onClick={cancel} disabled={cancelling} className="c3-btn-ghost text-destructive w-full justify-center mt-4 text-xs">
-            {cancelling && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-            {rsvp.status === 'waitlisted' ? 'leave the waitlist' : "cancel my place"}
-          </button>
+        {live && (
+          <motion.div {...fade(3)} className="mt-7 grid gap-3">
+            {!rsvp.checked_in_at && <AddToCalendar event={event} url={ticketLink} variant="crt" placement="top" />}
+            <div className="grid grid-cols-2 gap-3">
+              <GlassButton href={mapsUrl(event)} target="_blank" rel="noreferrer"><Navigation className="h-4 w-4" /> Directions</GlassButton>
+              <GlassButton to={`/rsvp/${event.id}`}><Info className="h-4 w-4" /> Event page</GlassButton>
+            </div>
+          </motion.div>
         )}
 
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          <Link to="/explore" className="hover:text-foreground">find more events</Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function StatusCard({ rsvp, qr, ended, eventCancelled }) {
-  if (eventCancelled) {
-    return <Notice icon={AlertTriangle} title="This event was cancelled" note="The club called it off. You do not need to do anything." />;
-  }
-  if (rsvp.status === 'cancelled') {
-    return <Notice icon={AlertTriangle} title="You cancelled your place" note="Changed your mind? RSVP again from the event page." />;
-  }
-  if (rsvp.checked_in_at) {
-    return <Notice icon={CheckCircle2} tone="primary" title="You're checked in" note="Scanned at the door. Enjoy the event." />;
-  }
-  if (ended) {
-    return <Notice icon={Clock} title="This event has ended" note="Thanks for coming along." />;
-  }
-  if (rsvp.status === 'waitlisted') {
-    return (
-      <Notice
-        icon={Clock}
-        title="You're on the waitlist"
-        note="The event is full. We'll email you if a place opens up, so keep this link."
-      />
-    );
-  }
-  return (
-    <div className="c3-card p-6 text-center">
-      <CheckCircle2 className="w-9 h-9 text-primary mx-auto mb-2" />
-      <h2 className="font-display font-bold text-xl mb-1">You're going</h2>
-      <p className="text-sm text-muted-foreground mb-5">Show this at the door.</p>
-      {qr
-        ? <div className="inline-block bg-white p-3 rounded-lg"><img src={qr} alt="Your check-in QR code" className="w-56 h-56" /></div>
-        : <Loader2 className="w-5 h-5 animate-spin text-muted-foreground mx-auto" />}
-      <p className="text-xs text-muted-foreground mt-5">Screenshot it if you'll be somewhere with poor signal.</p>
-    </div>
-  );
-}
-
-function Notice({ icon: Icon, title, note, tone }) {
-  return (
-    <div className="c3-card p-6 text-center">
-      <Icon className={`w-9 h-9 mx-auto mb-2 ${tone === 'primary' ? 'text-primary' : 'text-muted-foreground'}`} />
-      <h2 className="font-display font-bold text-xl mb-1">{title}</h2>
-      <p className="text-sm text-muted-foreground">{note}</p>
-    </div>
-  );
-}
-
-function Shell({ children }) {
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-6">
-      <div className="max-w-sm text-center">{children}</div>
-    </div>
+        <motion.div {...fade(4)} className="mt-7 text-center text-xs text-white/85 [text-shadow:0_1px_10px_rgba(20,0,60,0.45)]">
+          <p>Booked as {rsvp.full_name} · {rsvp.email}</p>
+          {canCancel && !confirming && (
+            <button type="button" onClick={() => setConfirming(true)} className="mt-3 underline-offset-4 hover:text-white hover:underline">
+              {rsvp.status === 'waitlisted' ? 'Leave the waitlist' : "Can't make it? Cancel my place"}
+            </button>
+          )}
+          {canCancel && confirming && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={cancel}
+                disabled={cancelling}
+                className="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-xs font-semibold text-destructive shadow disabled:opacity-60"
+              >
+                {cancelling && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                {rsvp.status === 'waitlisted' ? 'Yes, leave the waitlist' : 'Yes, cancel my place'}
+              </button>
+              <button type="button" onClick={() => setConfirming(false)} className="h-9 rounded-xl px-3 font-medium text-white hover:bg-white/15">
+                Keep it
+              </button>
+            </div>
+          )}
+        </motion.div>
+      </main>
+    </EventShell>
   );
 }

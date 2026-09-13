@@ -236,7 +236,7 @@ publicRoutes.post("/rsvp-lookup", async (c) => {
 
   const supabase = db();
   const { data: rsvp } = await supabase.from("rsvps")
-    .select("id,event_id,full_name,email,status,rsvp_token").eq("rsvp_token", token).maybeSingle();
+    .select("id,event_id,full_name,email,status,rsvp_token,created_date").eq("rsvp_token", token).maybeSingle();
   if (!rsvp) return c.json({ error: "not_found", message: "This ticket link is not valid." }, 404);
 
   const { data: event } = await supabase.from("events")
@@ -252,6 +252,20 @@ publicRoutes.post("/rsvp-lookup", async (c) => {
   const { data: checkIn } = await supabase.from("check_ins")
     .select("checked_in_at").eq("rsvp_id", rsvp.id).maybeSingle();
 
+  // What makes a ticket feel like theirs: its number in the order people signed
+  // up, their place in the waitlist, and how many of this club's other events
+  // they have been to. Counts only, nothing about anyone else.
+  const [numbered, ahead, visits] = await Promise.all([
+    supabase.from("rsvps").select("id", { count: "exact", head: true })
+      .eq("event_id", event.id).lte("created_date", rsvp.created_date),
+    rsvp.status === "waitlisted"
+      ? supabase.from("rsvps").select("id", { count: "exact", head: true })
+        .eq("event_id", event.id).eq("status", "waitlisted").lt("created_date", rsvp.created_date)
+      : Promise.resolve({ count: null }),
+    supabase.from("check_ins").select("id", { count: "exact", head: true })
+      .eq("club_id", event.club_id).eq("email", String(rsvp.email).toLowerCase()).neq("event_id", event.id),
+  ]);
+
   return c.json({
     rsvp: {
       full_name: rsvp.full_name,
@@ -262,7 +276,33 @@ publicRoutes.post("/rsvp-lookup", async (c) => {
     },
     event,
     club: club ? { name: club.name, slug: club.slug, logo_url: club.logo_url } : null,
+    ticket: {
+      number: numbered.count || 1,
+      waitlist_position: rsvp.status === "waitlisted" ? (ahead.count || 0) + 1 : null,
+      club_visits: visits.count ?? 0,
+    },
   });
+});
+
+/**
+ * How full an event is, for the "spots left" line on its public page. Events
+ * without a capacity have nothing to count and say so.
+ */
+publicRoutes.post("/event-availability", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const eventId = typeof body.event_id === "string" ? body.event_id.trim() : "";
+  if (!eventId) return c.json({ error: "event_not_found", message: "Event not found." }, 404);
+
+  const supabase = db();
+  const { data: event } = await supabase.from("events")
+    .select("id,capacity,status").eq("id", eventId).maybeSingle();
+  if (!event || event.status === "draft") return c.json({ error: "event_not_found", message: "Event not found." }, 404);
+  if (!event.capacity) return c.json({ capacity: null, spots_left: null });
+
+  const { count } = await supabase.from("rsvps")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", event.id).eq("status", "confirmed");
+  return c.json({ capacity: event.capacity, spots_left: Math.max(0, event.capacity - (count || 0)) });
 });
 
 /**
