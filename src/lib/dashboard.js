@@ -228,3 +228,60 @@ export function buildDashboard(data, { now = Date.now() } = {}) {
     door,
   };
 }
+
+/**
+ * The events page's groups, each row carrying the numbers it shows:
+ * coming up (taking RSVPs, or on right now), grant packs owed (treasurer and
+ * up), drafts, and everything that has already happened or was called off.
+ */
+export function buildEventsBoard(data, { now = Date.now() } = {}) {
+  const { events, rsvps, checkIns, packs, receipts, photos, treasurer } = data;
+  const start = (e) => new Date(e.starts_at).getTime();
+  const end = (e) => new Date(e.ends_at || e.starts_at).getTime();
+  const rsvpsBy = groupBy(rsvps, 'event_id');
+  const checkInsBy = groupBy(checkIns, 'event_id');
+  const photosBy = groupBy(photos, 'event_id');
+  const receiptsBy = groupBy(receipts, 'event_id');
+  const packsBy = groupBy(packs, 'event_id');
+
+  const rowFor = (e) => {
+    const list = rsvpsBy.get(e.id) || [];
+    const confirmed = list.filter((r) => r.status === 'confirmed');
+    const ids = new Set(confirmed.map((r) => r.id));
+    const ins = checkInsBy.get(e.id) || [];
+    const latestPack = [...(packsBy.get(e.id) || [])].sort((a, b) => (b.version || 0) - (a.version || 0))[0] || null;
+    return {
+      event: e,
+      live: e.status === 'published' && start(e) <= now && end(e) >= now,
+      going: confirmed.length,
+      waitlisted: list.filter((r) => r.status === 'waitlisted').length,
+      checkedIn: ins.length,
+      arrived: ins.filter((c) => c.rsvp_id && ids.has(c.rsvp_id)).length,
+      pack: latestPack,
+      steps: [
+        { key: 'attendance', label: 'attendance', done: ins.length > 0 },
+        { key: 'photos', label: 'photos', done: (photosBy.get(e.id) || []).length > 0 },
+        { key: 'receipts', label: 'receipts', done: (receiptsBy.get(e.id) || []).length > 0 },
+        { key: 'pdf', label: 'the PDF', done: false },
+      ],
+    };
+  };
+
+  const upcoming = [];
+  const owed = [];
+  const drafts = [];
+  const past = [];
+  for (const e of events) {
+    const row = rowFor(e);
+    if (e.status === 'draft') drafts.push(row);
+    else if (e.status === 'published' && end(e) >= now) upcoming.push(row);
+    else if (treasurer && e.status !== 'cancelled' && e.is_grant_funded && !row.pack) owed.push(row);
+    else past.push(row);
+  }
+  upcoming.sort((a, b) => start(a.event) - start(b.event));
+  owed.sort((a, b) => end(a.event) - end(b.event));
+  drafts.sort((a, b) => start(a.event) - start(b.event));
+  past.sort((a, b) => start(b.event) - start(a.event));
+
+  return { total: events.length, upcoming, owed, drafts, past, treasurer };
+}
