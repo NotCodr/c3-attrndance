@@ -10,7 +10,8 @@ import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
 import { editionFor, mapsUrl, ticketNumber } from '@/lib/ticket';
 import EventShell, { GlassButton, GlassCard } from '@/components/EventShell';
 import CrtButton from '@/components/CrtButton';
-import TicketCard from '@/components/TicketCard';
+import ReceiptTicket from '@/components/ReceiptTicket';
+import QrOverlay from '@/components/QrOverlay';
 import AddToCalendar from '@/components/AddToCalendar';
 import {
   AlertTriangle, ArrowRight, CalendarDays, Check, ExternalLink, Loader2, Lock, MapPin, Share2,
@@ -420,6 +421,7 @@ export default function PublicRSVP() {
 /** The moment after RSVPing: the page takes on the ticket's colours as it prints. */
 function Confirmation({ ticket, qrDataUrl, event, onShare, reduce }) {
   const { rsvp } = ticket;
+  const [showQr, setShowQr] = useState(false);
   const edition = editionFor(rsvp.rsvp_token);
   const waitlisted = rsvp.status === 'waitlisted';
   const number = ticketNumber(ticket.ticket?.number);
@@ -456,7 +458,7 @@ function Confirmation({ ticket, qrDataUrl, event, onShare, reduce }) {
         </div>
 
         <div className="mt-8">
-          <TicketCard data={ticket} qrDataUrl={qrDataUrl} reveal />
+          <ReceiptTicket data={ticket} qrDataUrl={qrDataUrl} onShowQr={() => setShowQr(true)} reveal scale={1.15} />
         </div>
 
         <motion.div {...rise(1.25)} className="mt-8 grid gap-3">
@@ -468,6 +470,7 @@ function Confirmation({ ticket, qrDataUrl, event, onShare, reduce }) {
           <p className="mt-1 text-center text-xs text-white/70">Keep your ticket link. It always has your QR code.</p>
         </motion.div>
       </main>
+      <QrOverlay open={showQr} onClose={() => setShowQr(false)} qrDataUrl={qrDataUrl} data={ticket} />
     </EventShell>
   );
 }

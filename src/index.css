@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -30,6 +30,7 @@
 
     --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --font-display: 'Fredoka', 'Inter', sans-serif;
+    --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
     /* Brand-specific */
     --c3-purple: 257 65% 65%;
@@ -261,24 +262,7 @@ html.c3-no-scrollbar body::-webkit-scrollbar {
 }
 .c3-scrollbar[data-dragging='true'] .c3-scrollbar-thumb { cursor: grabbing; }
 
-/* ------------------------------------------------------------------ ticket --
-   Foil that catches the light now and then, and the shifting rainbow on the
-   rare Holo edition.                                                          */
-@keyframes c3-foil-sweep {
-  0%, 60% { transform: translateX(-140%) skewX(-20deg); }
-  100%    { transform: translateX(320%) skewX(-20deg); }
-}
-.c3-foil-sweep { animation: c3-foil-sweep 6s ease-in-out infinite; animation-delay: 1.4s; }
-
-@keyframes c3-holo-shift {
-  from { background-position: 0% 50%; }
-  to   { background-position: 200% 50%; }
-}
-.c3-holo { background-size: 200% 100%; animation: c3-holo-shift 7s linear infinite; }
-
 @media (prefers-reduced-motion: reduce) {
-  .c3-foil-sweep,
-  .c3-holo { animation: none !important; }
   .c3-scrollbar,
   .c3-scrollbar::before,
   .c3-scrollbar-thumb { transition: none; }

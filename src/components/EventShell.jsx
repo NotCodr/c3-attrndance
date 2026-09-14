@@ -8,11 +8,21 @@ import Logo from '@/components/Logo';
  * The frame every attendee screen shares, so the event page, the moment after
  * RSVPing and the ticket read as one flow: the same moving background, the same
  * floating scrollbar in place of the native one, and the same light top bar.
+ * `tone="dark"` swaps the moving background for the dark stage the lanyard
+ * ticket hangs in.
  */
-export default function EventShell({ palette, children, navRight = null, bottomInset = 0 }) {
+export default function EventShell({ palette, children, navRight = null, bottomInset = 0, tone = 'vivid' }) {
   return (
     <div className="relative min-h-screen text-white">
-      <EventBackdrop palette={palette} />
+      {tone === 'dark' ? (
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 -z-10 bg-[#0C0C0E]"
+          style={{ background: 'radial-gradient(ellipse 90% 60% at 50% 20%, #1C1C20 0%, #0C0C0E 55%, #000 100%)' }}
+        />
+      ) : (
+        <EventBackdrop palette={palette} />
+      )}
       <FloatingScrollbar bottomInset={bottomInset} />
       <header className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 pt-5 sm:px-8 sm:pt-7">
         <Link
