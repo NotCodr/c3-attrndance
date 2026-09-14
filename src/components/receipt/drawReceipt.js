@@ -3,6 +3,7 @@
 // SCALE times larger, so it stays sharp on the lanyard and printed flat alike.
 
 import { RECEIPT_INK, RECEIPT_MUTED, RECEIPT_PAPER } from '@/lib/receipt';
+import { code128c } from '@/lib/barcode';
 
 const SCALE = 3;
 export const PAPER_W = 236;
@@ -211,8 +212,11 @@ function paintSeal(ctx, backing = false) {
 
 // ----------------------------------------------------------------- front --
 
-/** Lays out (and, unless `dry`, prints) the front. Returns the slip's height. */
-function printFront(ctx, model, assets, dry) {
+/**
+ * Lays out (and, unless `dry`, prints) the front. Returns the slip's height,
+ * and adds the graphics (QR, barcode) to `bands` as [top, bottom].
+ */
+function printFront(ctx, model, assets, dry, bands = []) {
   const cx = MARGIN + PAPER_W / 2;
   const left = MARGIN + PAD_X;
   const right = MARGIN + PAPER_W - PAD_X;
@@ -278,6 +282,7 @@ function printFront(ctx, model, assets, dry) {
         ctx.drawImage(assets.qr, cx - box / 2 + 5, y + 5, box - 10, box - 10);
       }
     }
+    bands.push([y, y + box]);
     y += box + 8;
     setFont(ctx, 8.5);
     if (!dry) {
@@ -317,7 +322,28 @@ function printFront(ctx, model, assets, dry) {
     }
     y += 12;
   }
-  return y + 24;
+
+  // A real Code 128 barcode of the ticket's reference, as till receipts end with.
+  if (model.barcode) {
+    y += 14;
+    const { bars, modules } = code128c(model.barcode);
+    const barsWidth = Math.min(width * 0.86, modules * 1.3);
+    const unit = barsWidth / modules;
+    const left0 = cx - barsWidth / 2;
+    if (!dry) {
+      ctx.fillStyle = RECEIPT_INK;
+      for (const bar of bars) ctx.fillRect(left0 + bar.x * unit, y, bar.w * unit, 34);
+    }
+    bands.push([y, y + 34]);
+    y += 39;
+    setFont(ctx, 9);
+    if (!dry) {
+      ctx.fillStyle = RECEIPT_INK;
+      drawSpaced(ctx, model.barcode.replace(/(\d{4})(?=\d)/g, '$1 '), cx, y + 6, 2.2, 'center');
+    }
+    y += 12;
+  }
+  return y + 22;
 }
 
 function makeCanvas(height) {
@@ -335,7 +361,8 @@ function makeCanvas(height) {
  * its outline and the seal's backing line up with the front.
  */
 export function drawReceipt(model, assets) {
-  const height = Math.ceil(printFront(makeCanvas(1).ctx, model, assets, true));
+  const bands = [];
+  const height = Math.ceil(printFront(makeCanvas(1).ctx, model, assets, true, bands));
 
   const front = makeCanvas(height);
   paintPaper(front.ctx, height, assets.paper);
@@ -354,5 +381,6 @@ export function drawReceipt(model, assets) {
     width: PAPER_W + MARGIN * 2,
     height,
     paperFraction: PAPER_W / (PAPER_W + MARGIN * 2),
+    bands,
   };
 }

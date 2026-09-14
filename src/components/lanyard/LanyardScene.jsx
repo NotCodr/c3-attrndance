@@ -5,14 +5,15 @@ import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { Environment, Lightformer, RoundedBox } from '@react-three/drei';
 import { BallCollider, CuboidCollider, Physics, RigidBody, useRopeJoint, useSphericalJoint } from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
-import { ANCHOR_Y, CLIP_DROP, framing, PAPER_WIDTH, planeSize, ROPE } from '@/components/lanyard/layout';
+import {
+  ANCHOR_Y, CLAMP, CLIP_DROP, framing, NECK, PAPER_WIDTH, planeSize, RING, ROPE, STRAP_WIDTH,
+} from '@/components/lanyard/layout';
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
 // The rope, joints, damping and drag below are React Bits' Lanyard. What
 // hangs from it is the printed slip: a slim satin strap through a silver ring,
 // and a small clamp over the top edge of the paper.
-const STRAP_WIDTH = 0.58;
 const STRAP_REPEATS = 5;
 const noRaycast = () => null;
 
@@ -49,6 +50,16 @@ export default function LanyardScene({ art, strap, swing = 0, onTap, onReady, ac
 
   const plane = planeSize(art);
 
+  // The rope stretches a little under the slip's weight. Once it has settled,
+  // the camera is moved by that much, so the slip sits exactly where the still
+  // picture put it, and only then is the lanyard ready to be shown.
+  const [sag, setSag] = useState(null);
+  const ready = useRef(onReady);
+  ready.current = onReady;
+  useEffect(() => {
+    if (sag != null) ready.current?.();
+  }, [sag]);
+
   return (
     <div ref={wrapper} className="absolute inset-0">
       <Canvas
@@ -58,7 +69,7 @@ export default function LanyardScene({ art, strap, swing = 0, onTap, onReady, ac
         gl={{ alpha: true }}
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), 0)}
       >
-        <Framing paperHeight={plane.height} />
+        <Framing paperHeight={plane.height} offset={sag || 0} />
         <ambientLight intensity={Math.PI} />
         <Suspense fallback={null}>
           <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
@@ -72,7 +83,7 @@ export default function LanyardScene({ art, strap, swing = 0, onTap, onReady, ac
               isMobile={isMobile}
               grabbing={grabbing}
               onTap={onTap}
-              onReady={onReady}
+              onSettled={setSag}
             />
           </Physics>
         </Suspense>
@@ -87,15 +98,18 @@ export default function LanyardScene({ art, strap, swing = 0, onTap, onReady, ac
   );
 }
 
-/** Points the camera the way the printer overlay expects (see layout.js). */
-function Framing({ paperHeight }) {
+/**
+ * Points the camera the way the still picture expects (see layout.js),
+ * lowered by `offset` for however far the rope let the slip sag.
+ */
+function Framing({ paperHeight, offset }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const frame = framing(size.width, size.height, paperHeight);
-    camera.position.set(0, frame.cameraY, frame.cameraZ);
+    camera.position.set(0, frame.cameraY - offset, frame.cameraZ);
     camera.rotation.set(0, 0, 0);
     camera.updateProjectionMatrix();
-  }, [camera, size.width, size.height, paperHeight]);
+  }, [camera, size.width, size.height, paperHeight, offset]);
   return null;
 }
 
@@ -112,7 +126,7 @@ function useCanvasTexture(canvas, repeat = false) {
   return texture;
 }
 
-function Band({ art, strap, plane, swing, isMobile, grabbing, onTap, onReady, maxSpeed = 50, minSpeed = 0 }) {
+function Band({ art, strap, plane, swing, isMobile, grabbing, onTap, onSettled, maxSpeed = 50, minSpeed = 0 }) {
   const band = useRef(), fixed = useRef(), j1 = useRef(), j2 = useRef(), j3 = useRef(), card = useRef();
   const vec = new THREE.Vector3(), ang = new THREE.Vector3(), rot = new THREE.Vector3(), dir = new THREE.Vector3();
   const facing = new THREE.Vector3(), turn = new THREE.Quaternion();
@@ -130,7 +144,7 @@ function Band({ art, strap, plane, swing, isMobile, grabbing, onTap, onReady, ma
   const [dragged, drag] = useState(false);
   const [hovered, hover] = useState(false);
   const press = useRef(null);
-  const ready = useRef(false);
+  const settled = useRef({ frames: 0, done: false });
 
   useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
   useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
@@ -145,18 +159,23 @@ function Band({ art, strap, plane, swing, isMobile, grabbing, onTap, onReady, ma
     return undefined;
   }, [hovered, dragged]);
 
-  // The printer lets go: a push to set it swinging.
+  // Taking over from the still picture: a gentle push to set it swinging.
   useEffect(() => {
     if (!swing || !card.current) return;
     [card, j1, j2, j3].forEach((ref) => ref.current?.wakeUp());
-    card.current.applyImpulse({ x: 0.45, y: 0, z: 0 }, true);
-    card.current.applyTorqueImpulse({ x: 0, y: 0.025, z: 0 }, true);
+    card.current.applyImpulse({ x: 0.3, y: 0, z: 0 }, true);
+    card.current.applyTorqueImpulse({ x: 0, y: 0.015, z: 0 }, true);
   }, [swing]);
 
   useFrame((state, delta) => {
-    if (!ready.current) {
-      ready.current = true;
-      onReady?.();
+    // Once the slip has come to rest, report how far below its ideal spot it hangs.
+    if (!settled.current.done && card.current) {
+      settled.current.frames += 1;
+      const v = card.current.linvel();
+      if ((settled.current.frames > 20 && Math.hypot(v.x, v.y, v.z) < 0.01) || settled.current.frames > 240) {
+        settled.current.done = true;
+        onSettled?.(ANCHOR_Y - ROPE - ring - card.current.translation().y);
+      }
     }
     if (dragged) {
       vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
@@ -276,16 +295,16 @@ function Clip({ top }) {
   return (
     <group position={[0, top, 0]}>
       <mesh position={[0, CLIP_DROP, 0]} raycast={noRaycast}>
-        <torusGeometry args={[0.05, 0.012, 12, 32]} />
+        <torusGeometry args={[RING.radius, RING.tube, 12, 32]} />
         <meshStandardMaterial color="#dfe2e8" metalness={1} roughness={0.22} />
       </mesh>
-      <RoundedBox args={[0.034, 0.05, 0.02]} radius={0.008} smoothness={2} position={[0, 0.088, 0]} raycast={noRaycast}>
+      <RoundedBox args={[NECK.width, NECK.height, 0.02]} radius={0.008} smoothness={2} position={[0, NECK.y, 0]} raycast={noRaycast}>
         <meshStandardMaterial color="#c9ccd3" metalness={1} roughness={0.25} />
       </RoundedBox>
-      <RoundedBox args={[0.21, 0.1, 0.036]} radius={0.016} smoothness={3} position={[0, 0.022, 0.004]} raycast={noRaycast}>
+      <RoundedBox args={[CLAMP.width, CLAMP.height, 0.036]} radius={0.016} smoothness={3} position={[0, CLAMP.y, 0.004]} raycast={noRaycast}>
         <meshStandardMaterial color="#2a2b31" metalness={0.9} roughness={0.3} />
       </RoundedBox>
-      <mesh position={[0, 0.022, 0.024]} rotation={[Math.PI / 2, 0, 0]} raycast={noRaycast}>
+      <mesh position={[0, CLAMP.y, 0.024]} rotation={[Math.PI / 2, 0, 0]} raycast={noRaycast}>
         <cylinderGeometry args={[0.013, 0.013, 0.008, 20]} />
         <meshStandardMaterial color="#dfe2e8" metalness={1} roughness={0.2} />
       </mesh>

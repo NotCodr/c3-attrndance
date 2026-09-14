@@ -13,7 +13,6 @@ const PRINTER_ROOM = 40;
 export default function PrintedReceipt({ data, qrDataUrl, onShowQr, paperWidth = 272 }) {
   const reduce = useReducedMotion();
   const { model, art } = useReceiptArt(data, qrDataUrl);
-  const [printed, setPrinted] = useState(false);
   const [gone, setGone] = useState(false);
   const scale = paperWidth / PAPER_W;
   const width = (PAPER_W + MARGIN * 2) * scale;
@@ -31,11 +30,8 @@ export default function PrintedReceipt({ data, qrDataUrl, onShowQr, paperWidth =
           src={art?.url}
           rect={rect}
           paperWidth={PAPER_W * scale}
-          lip={10}
-          keepPaper
-          release={printed}
-          onPrinted={() => setPrinted(true)}
-          onReleased={() => setGone(true)}
+          bands={art ? art.bands.map(([top, bottom]) => [top * scale, bottom * scale]) : []}
+          onGone={() => setGone(true)}
         />
       )}
       {art && done && (

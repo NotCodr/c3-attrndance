@@ -1,11 +1,11 @@
-import React, { Component, lazy, Suspense, useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'motion/react';
+import React, { Component, lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import useReceiptArt from '@/components/receipt/useReceiptArt';
-import ReceiptPrinter from '@/components/receipt/ReceiptPrinter';
 import { ReceiptText } from '@/components/receipt/PrintedReceipt';
 import { drawStrap, loadStrapMark } from '@/components/lanyard/drawStrap';
-import { framing, PAPER_WIDTH, planeSize } from '@/components/lanyard/layout';
-import { MARGIN, PAPER_W } from '@/components/receipt/drawReceipt';
+import {
+  ANCHOR_Y, CLAMP, framing, NECK, planeSize, RING, ROPE, STRAP_WORLD_WIDTH,
+} from '@/components/lanyard/layout';
 
 const loadScene = () => import('@/components/lanyard/LanyardScene');
 const LanyardScene = lazy(loadScene);
@@ -15,10 +15,9 @@ export const preloadLanyard = () => { loadScene().catch(() => {}); };
 
 // The strap's width over the length of one repeat of its pattern (see drawStrap).
 const STRAP_ACROSS = 0.16;
-// How long after the printer lets go the slip starts to swing.
-const HANDOFF_MS = 240;
-// A typical slip's size, to place the printer before the real one is drawn.
-const ESTIMATE = { paperFraction: PAPER_W / (PAPER_W + MARGIN * 2), width: PAPER_W + MARGIN * 2, height: 600 };
+// How far apart the marks on the strap are, in world units (3 of rope, 5 repeats).
+const MARK_EVERY = 0.6;
+const FADE_MS = 450;
 
 function hasWebGL() {
   try {
@@ -47,11 +46,11 @@ class SceneBoundary extends Component {
 }
 
 /**
- * The ticket printed as a receipt and caught by a lanyard. A printer at the
- * top feeds the slip out; when it lets go, the 3D lanyard (loaded behind it,
- * hanging exactly where the slip ends up) takes over and the slip swings, to
- * be grabbed and thrown. Tapping it opens the QR. Without WebGL, with reduced
- * motion, or if the scene can't load, the slip hangs still instead.
+ * The ticket as a receipt on a lanyard. The slip drops in straight away as a
+ * still picture, placed exactly where the 3D lanyard hangs it; once the 3D
+ * scene has loaded it fades in over the picture, takes over and swings, to be
+ * grabbed and thrown. Tapping the slip opens the QR. Without WebGL, with
+ * reduced motion, or if the scene can't load, the still picture stays.
  */
 export default function LanyardTicket({ data, qrDataUrl, onShowQr }) {
   const reduce = useReducedMotion();
@@ -61,23 +60,25 @@ export default function LanyardTicket({ data, qrDataUrl, onShowQr }) {
   const [failed, setFailed] = useState(false);
   const [strap, setStrap] = useState(null);
   const [size, setSize] = useState(null);
+  const [landed, setLanded] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
-  const [printed, setPrinted] = useState(false);
-  const [released, setReleased] = useState(false);
-  const [printerGone, setPrinterGone] = useState(false);
+  const [handedOff, setHandedOff] = useState(false);
   const [swing, setSwing] = useState(0);
   const [active, setActive] = useState(true);
   const [slow, setSlow] = useState(false);
-  const flat = !!reduce || !webgl || failed || art === false;
+  const handoffDone = useRef(false);
+  const threeD = webgl && !reduce && !failed && art !== false;
+  const fading = threeD && landed && sceneReady;
+  const live = threeD && handedOff;
 
   useEffect(() => {
-    if (flat) return undefined;
+    if (!threeD) return undefined;
     let cancelled = false;
     loadStrapMark().then((mark) => {
       if (!cancelled) setStrap(drawStrap(mark, { across: STRAP_ACROSS }));
     });
     return () => { cancelled = true; };
-  }, [flat]);
+  }, [threeD]);
 
   useEffect(() => {
     const el = stage.current;
@@ -85,96 +86,80 @@ export default function LanyardTicket({ data, qrDataUrl, onShowQr }) {
     const ro = new ResizeObserver(([entry]) => setSize({ width: entry.contentRect.width, height: entry.contentRect.height }));
     ro.observe(el);
     return () => ro.disconnect();
-  }, [flat]);
+  }, []);
 
   // No physics while the stage is scrolled out of view.
   useEffect(() => {
     const el = stage.current;
-    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    if (!el || !threeD || typeof IntersectionObserver === 'undefined') return undefined;
     const io = new IntersectionObserver(([entry]) => setActive(entry.isIntersecting), { rootMargin: '120px' });
     io.observe(el);
     return () => io.disconnect();
-  }, [flat]);
+  }, [threeD]);
 
   useEffect(() => {
     const t = setTimeout(() => setSlow(true), 700);
     return () => clearTimeout(t);
   }, []);
 
-  // Printed and the lanyard is waiting behind the printer: let go. The lanyard
-  // takes the slip's place as the printer lifts, then the slip is set swinging.
+  // If the 3D lanyard still hasn't loaded long after the slip landed, leave it still.
   useEffect(() => {
-    if (printed && sceneReady && !released) setReleased(true);
-  }, [printed, sceneReady, released]);
-
-  useEffect(() => {
-    if (!released) return undefined;
-    const t = setTimeout(() => setSwing((n) => n + 1), HANDOFF_MS);
+    if (!threeD || !landed || sceneReady) return undefined;
+    const t = setTimeout(() => setFailed(true), 12000);
     return () => clearTimeout(t);
-  }, [released]);
+  }, [threeD, landed, sceneReady]);
 
-  // If the lanyard still isn't up well after printing, leave the slip hanging still.
+  // Once the lanyard has faded in over the still slip, it takes over and swings.
+  const handOff = useCallback(() => {
+    if (handoffDone.current) return;
+    handoffDone.current = true;
+    setHandedOff(true);
+    setSwing((n) => n + 1);
+  }, []);
+
   useEffect(() => {
-    if (!printed || sceneReady) return undefined;
-    const t = setTimeout(() => setFailed(true), 10000);
+    if (!fading) return undefined;
+    const t = setTimeout(handOff, FADE_MS + 250); // in case transitionend never arrives
     return () => clearTimeout(t);
-  }, [printed, sceneReady]);
+  }, [fading, handOff]);
 
-  if (flat) {
-    return (
-      <div data-lanyard="flat" className="flex flex-col items-center pb-10 pt-1">
-        <StillLanyard />
-        {art ? (
-          <button
-            type="button"
-            onClick={onShowQr}
-            disabled={!model?.showQr || !onShowQr}
-            aria-label="Show your check-in QR code full screen"
-            className="relative z-0 block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-default"
-            style={{ filter: 'drop-shadow(0 22px 26px rgba(0,0,0,.55))' }}
-          >
-            <img src={art.url} alt="" draggable={false} className="block w-[320px] max-w-[88vw]" />
-          </button>
-        ) : (
-          <div className="h-[520px]" />
-        )}
-        {model && <ReceiptText data={data} model={model} />}
-      </div>
-    );
+  let plane = null;
+  let frame = null;
+  if (art && size) {
+    plane = planeSize(art);
+    frame = framing(size.width, size.height, plane.height);
   }
-
-  let rect = null;
-  let paperPx = 0;
-  if (size) {
-    const plane = planeSize(art || ESTIMATE);
-    const frame = framing(size.width, size.height, plane.height);
-    rect = {
-      left: frame.toScreenX(-plane.width / 2),
-      top: frame.toScreenY(frame.paperTop),
-      width: plane.width * frame.pxPerUnit,
-      height: plane.height * frame.pxPerUnit,
-    };
-    paperPx = PAPER_WIDTH * frame.pxPerUnit;
-  }
-
-  const phase = released ? 'live' : printed ? 'printed' : art ? 'printing' : 'loading';
-  const hint = released
-    ? (model?.showQr ? 'Tap it for your QR, or give it a swing.' : 'Grab it and give it a swing.')
-    : art ? 'Printing your ticket…' : slow ? 'Getting your ticket…' : '';
+  const hint = !art
+    ? (slow ? 'Getting your ticket…' : '')
+    : live
+      ? (model.showQr ? 'Tap it for your QR, or give it a swing.' : 'Grab it and give it a swing.')
+      : (model.showQr ? 'Tap it for your QR.' : '');
 
   return (
     <div
       ref={stage}
-      data-lanyard={phase}
+      data-lanyard={live ? 'live' : !art ? 'loading' : threeD ? 'still' : 'flat'}
       className="relative select-none overflow-hidden"
       style={{ height: 'clamp(540px, calc(100svh - 4.5rem), 820px)', minHeight: 540 }}
     >
-      {art && strap && (
+      {frame && !live && (
+        <StillSlip
+          art={art}
+          plane={plane}
+          frame={frame}
+          animate={!reduce}
+          onLanded={() => setLanded(true)}
+          onShowQr={model.showQr ? onShowQr : undefined}
+        />
+      )}
+
+      {threeD && art && strap && (
         <SceneBoundary onError={() => setFailed(true)}>
           <Suspense fallback={null}>
             <div
               className="absolute inset-0"
-              style={{ opacity: released ? 1 : 0, pointerEvents: released ? 'auto' : 'none' }}
+              style={{ opacity: fading ? 1 : 0, pointerEvents: live ? 'auto' : 'none', transition: `opacity ${FADE_MS}ms ease` }}
+              onTransitionEnd={(e) => { if (e.target === e.currentTarget && fading) handOff(); }}
             >
               <LanyardScene
                 art={art}
@@ -189,17 +174,6 @@ export default function LanyardTicket({ data, qrDataUrl, onShowQr }) {
         </SceneBoundary>
       )}
 
-      {rect && !printerGone && (
-        <ReceiptPrinter
-          src={art?.url}
-          rect={rect}
-          paperWidth={paperPx}
-          release={released}
-          onPrinted={() => setPrinted(true)}
-          onReleased={() => setPrinterGone(true)}
-        />
-      )}
-
       <span aria-hidden="true" className="pointer-events-none absolute inset-x-6 bottom-16 h-px bg-white/[0.08]" />
       <p aria-live="polite" className="pointer-events-none absolute inset-x-0 bottom-6 text-center text-xs text-[#9A9AA3]">{hint}</p>
       {model && <ReceiptText data={data} model={model} />}
@@ -207,24 +181,87 @@ export default function LanyardTicket({ data, qrDataUrl, onShowQr }) {
   );
 }
 
-/** The lanyard for the still version: a slim strap, the ring, and a clamp over the slip. */
-function StillLanyard() {
+/**
+ * The slip and its lanyard as a still picture, placed exactly where the 3D
+ * scene hangs them (see layout.js), so one can take over from the other.
+ */
+function StillSlip({ art, plane, frame, animate, onLanded, onShowQr }) {
+  const px = frame.pxPerUnit;
+  const cx = frame.toScreenX(0);
+  const ringY = frame.toScreenY(ANCHOR_Y - ROPE);
+  const paperTop = frame.toScreenY(frame.paperTop);
+  const strapWidth = STRAP_WORLD_WIDTH * px;
+  const ringSize = (RING.radius + RING.tube) * 2 * px;
+  const stitch = 'repeating-linear-gradient(180deg, rgba(255,255,255,.2) 0 5px, transparent 5px 10px)';
+  const marks = [];
+  for (let y = ringY - (MARK_EVERY / 2) * px; y > -40; y -= MARK_EVERY * px) marks.push(y);
+
+  useEffect(() => {
+    if (!animate) onLanded();
+  }, []);
+
   return (
-    <div aria-hidden="true" className="relative z-[1] -mb-2 flex flex-col items-center">
-      <div
-        className="flex h-24 w-[14px] flex-col items-center justify-around overflow-hidden sm:h-28"
-        style={{ background: 'linear-gradient(90deg, #040406 0%, #211f2a 50%, #040406 100%)' }}
-      >
-        {[0, 1, 2].map((i) => <img key={i} src="/brand/connect3-logo-white.png" alt="" className="w-[9px] opacity-90" />)}
+    <motion.div
+      className="absolute inset-0"
+      initial={animate ? { y: -56, opacity: 0 } : false}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 120, damping: 15, mass: 0.9 }}
+      onAnimationComplete={animate ? onLanded : undefined}
+    >
+      <div aria-hidden="true">
+        <div
+          className="absolute overflow-hidden"
+          style={{ left: cx - strapWidth / 2, top: -80, width: strapWidth, height: ringY + 80, background: 'linear-gradient(90deg, #040406 0%, #211f2a 50%, #040406 100%)' }}
+        >
+          <span className="absolute inset-y-0 left-[12%] w-px" style={{ background: stitch }} />
+          <span className="absolute inset-y-0 right-[12%] w-px" style={{ background: stitch }} />
+          {marks.map((y) => (
+            <img
+              key={y}
+              src="/brand/connect3-logo-white.png"
+              alt=""
+              className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{ top: y + 80, width: strapWidth * 0.7 }}
+            />
+          ))}
+        </div>
+        <span
+          className="absolute rounded-full shadow-[0_1px_2px_rgba(0,0,0,.6)]"
+          style={{ left: cx - ringSize / 2, top: ringY - ringSize / 2, width: ringSize, height: ringSize, border: `${RING.tube * 2 * px}px solid #dfe2e8` }}
+        />
+        <span
+          className="absolute rounded-[2px] bg-[#c9ccd3]"
+          style={{ left: cx - (NECK.width * px) / 2, top: paperTop - NECK.y * px - (NECK.height * px) / 2, width: NECK.width * px, height: NECK.height * px }}
+        />
       </div>
-      <span className="-mt-px h-[18px] w-[18px] rounded-full border-[3px] border-[#dfe2e8] shadow-[0_1px_2px_rgba(0,0,0,.6)]" />
-      <span className="-mt-[3px] h-2 w-[5px] rounded-sm bg-[#c9ccd3]" />
-      <span
-        className="relative h-4 w-9 rounded-[5px] shadow-[0_2px_4px_rgba(0,0,0,.5)]"
-        style={{ background: 'linear-gradient(180deg, #3a3b42 0%, #25262c 100%)' }}
+
+      <button
+        type="button"
+        onClick={onShowQr}
+        disabled={!onShowQr}
+        aria-label="Show your check-in QR code full screen"
+        className="absolute block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white disabled:cursor-default"
+        style={{ left: frame.toScreenX(-plane.width / 2), top: paperTop, width: plane.width * px, height: plane.height * px }}
       >
-        <span className="absolute left-1/2 top-1/2 h-[5px] w-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#dfe2e8]" />
+        <img src={art.url} alt="" draggable={false} className="block h-full w-full" />
+      </button>
+
+      <span
+        aria-hidden="true"
+        className="absolute rounded-[4px] shadow-[0_2px_4px_rgba(0,0,0,.5)]"
+        style={{
+          left: cx - (CLAMP.width * px) / 2,
+          top: paperTop - CLAMP.y * px - (CLAMP.height * px) / 2,
+          width: CLAMP.width * px,
+          height: CLAMP.height * px,
+          background: 'linear-gradient(180deg, #3a3b42 0%, #25262c 100%)',
+        }}
+      >
+        <span
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#dfe2e8]"
+          style={{ width: 0.026 * px, height: 0.026 * px }}
+        />
       </span>
-    </div>
+    </motion.div>
   );
 }

@@ -58,6 +58,19 @@ function visitLine(visits) {
   return `${tag} · VISIT NO. ${n}`;
 }
 
+/**
+ * The number under the barcode: the ticket number, then nine digits that are
+ * the same every time for this ticket.
+ */
+function referenceDigits(seed, number) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return `${String(number || 0).padStart(3, '0')}${String((h >>> 0) % 1e9).padStart(9, '0')}`;
+}
+
 function statusFor(state, rsvp, ticket) {
   switch (state) {
     case 'valid':
@@ -99,5 +112,6 @@ export function receiptFor(data, now = Date.now()) {
     status: statusFor(state, rsvp, ticket),
     showQr: state === 'valid',
     footer: state === 'valid' || state === 'admitted' || state === 'waitlisted' ? visitLine(ticket?.club_visits) : null,
+    barcode: referenceDigits(rsvp.rsvp_token || event.id, ticket?.number),
   };
 }
