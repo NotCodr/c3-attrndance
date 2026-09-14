@@ -273,6 +273,8 @@ publicRoutes.post("/rsvp-lookup", async (c) => {
       status: rsvp.status,
       rsvp_token: rsvp.rsvp_token,
       checked_in_at: checkIn?.checked_in_at || null,
+      // When they booked, printed on the ticket like a till receipt's time.
+      created_date: rsvp.created_date,
     },
     event,
     club: club ? { name: club.name, slug: club.slug, logo_url: club.logo_url } : null,

@@ -10,7 +10,7 @@ import { UNIVERSITY_OPTIONS } from '@/lib/umsu';
 import { editionFor, mapsUrl, ticketNumber } from '@/lib/ticket';
 import EventShell, { GlassButton, GlassCard } from '@/components/EventShell';
 import CrtButton from '@/components/CrtButton';
-import ReceiptTicket from '@/components/ReceiptTicket';
+import PrintedReceipt from '@/components/receipt/PrintedReceipt';
 import QrOverlay from '@/components/QrOverlay';
 import AddToCalendar from '@/components/AddToCalendar';
 import {
@@ -453,12 +453,12 @@ function Confirmation({ ticket, qrDataUrl, event, onShare, reduce }) {
           <motion.p {...rise(0.2)} className="mx-auto mt-3 max-w-xs text-sm text-white/85">
             {waitlisted
               ? `We'll email ${rsvp.email} the moment a spot opens up for you.`
-              : `${number ? `Ticket ${number}, ` : ''}${edition.name} edition${edition.rare ? ' (a rare one)' : ''}. A copy is on its way to ${rsvp.email}.`}
+              : `${number ? `Ticket ${number}. ` : ''}${edition.rare ? "It's a rare holo one. " : ''}A copy is on its way to ${rsvp.email}.`}
           </motion.p>
         </div>
 
         <div className="mt-8">
-          <ReceiptTicket data={ticket} qrDataUrl={qrDataUrl} onShowQr={() => setShowQr(true)} reveal scale={1.15} />
+          <PrintedReceipt data={ticket} qrDataUrl={qrDataUrl} onShowQr={() => setShowQr(true)} />
         </div>
 
         <motion.div {...rise(1.25)} className="mt-8 grid gap-3">

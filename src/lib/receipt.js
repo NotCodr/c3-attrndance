@@ -1,25 +1,19 @@
-// What a ticket says when it is printed as a receipt. The paper hanging from
-// the lanyard and the flat receipt elsewhere both read from here, so the two
-// can never disagree.
+// What a ticket says when it is printed as a receipt. The slip on the lanyard
+// and the one printed after RSVPing are both drawn from this, so they match.
+//
+// It reads like a real one: the club issuing it, the event, who it admits,
+// and then the thing that matters at the door (the QR, or where the ticket
+// stands). The app's own name stays off the paper; the page already has it.
 
 import { formatTime, MEL_TZ } from '@/lib/format';
-import { editionFor, ordinal, ticketNumber } from '@/lib/ticket';
-
-// Short edition codes for the line under the barcode, and the sticker each
-// edition comes with. Holo, the rare one, gets the star.
-const EDITIONS = {
-  orchid: { code: 'ORCHD', sticker: '/brand/sticker-purple.png' },
-  lagoon: { code: 'LAGON', sticker: '/brand/sticker-blue.png' },
-  dusk: { code: 'DUSK', sticker: '/brand/sticker-pink.png' },
-  berry: { code: 'BERRY', sticker: '/brand/sticker-orange.png' },
-  holo: { code: 'HOLO', sticker: '/brand/sticker-star.webp' },
-};
+import { editionFor } from '@/lib/ticket';
 
 export const RECEIPT_INK = '#1E1836';
 export const RECEIPT_MUTED = '#5B5184';
 export const RECEIPT_PAPER = '#FBF8F0';
 
-const melDay = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: MEL_TZ });
+const melDay = (value) => new Date(value).toLocaleDateString('en-CA', { timeZone: MEL_TZ });
+const time24 = (iso) => new Date(iso).toLocaleTimeString('en-AU', { timeZone: MEL_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 
 export function ticketState({ rsvp, event }, now = Date.now()) {
   if (event.status === 'cancelled') return 'event-cancelled';
@@ -28,6 +22,13 @@ export function ticketState({ rsvp, event }, now = Date.now()) {
   if (rsvp.status === 'waitlisted') return 'waitlisted';
   if (event.ends_at && new Date(event.ends_at).getTime() < now) return 'ended';
   return 'valid';
+}
+
+/** "WED 16 SEPT", with the year only when it isn't this one. */
+function dateText(iso, now) {
+  const opts = { timeZone: MEL_TZ, weekday: 'short', day: 'numeric', month: 'short' };
+  if (melDay(iso).slice(0, 4) !== melDay(now).slice(0, 4)) opts.year = 'numeric';
+  return new Date(iso).toLocaleDateString('en-AU', opts).replace(/,/g, '').toUpperCase();
 }
 
 /** "7:00–10:00 PM", "11:00 AM–2:00 PM", or "FROM 7:00 PM" when it runs overnight. */
@@ -41,88 +42,62 @@ function timeRange(event) {
   return sMeridiem === eMeridiem ? `${s}–${e} ${eMeridiem}` : `${start}–${end}`;
 }
 
-function visitText(visits) {
-  if (visits == null) return null;
-  const n = visits + 1;
-  if (n === 1) return 'FIRST TIME';
-  const tag = n === 2 ? 'WELCOME BACK' : n <= 4 ? 'REGULAR' : 'LEGEND';
-  return `${ordinal(n).toUpperCase()} · ${tag}`;
+/** "13/09/26 10:42", the way a till prints it. */
+function bookedText(iso) {
+  if (!iso) return null;
+  const date = new Date(iso).toLocaleDateString('en-AU', { timeZone: MEL_TZ, day: '2-digit', month: '2-digit', year: '2-digit' });
+  return `${date} ${time24(iso)}`;
 }
 
-const STATUS = {
-  valid: () => ({ label: 'ADMIT ONE', aside: 'VALID', note: 'SHOW THE QR AT THE DOOR' }),
-  admitted: (rsvp) => ({
-    label: 'ADMITTED',
-    aside: new Date(rsvp.checked_in_at).toLocaleTimeString('en-AU', { timeZone: MEL_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }),
-    note: 'ENJOY THE EVENT',
-  }),
-  waitlisted: (rsvp, ticket) => ({
-    label: 'WAITLIST',
-    aside: ticket?.waitlist_position ? `#${ticket.waitlist_position}` : '',
-    note: "WE'LL EMAIL IF A SPOT OPENS",
-  }),
-  cancelled: () => ({ label: 'VOID', aside: '', note: 'YOU CANCELLED THIS TICKET' }),
-  'event-cancelled': () => ({ label: 'CALLED OFF', aside: '', note: 'THE CLUB CANCELLED THIS EVENT' }),
-  ended: () => ({ label: 'THANK YOU', aside: '', note: 'THIS EVENT HAS ENDED' }),
-};
+/** The friendly line at the foot of the slip, from how often they've come to this club. */
+function visitLine(visits) {
+  if (visits == null) return null;
+  const n = visits + 1;
+  if (n === 1) return 'FIRST VISIT · WELCOME!';
+  const tag = n === 2 ? 'WELCOME BACK' : n <= 4 ? 'REGULAR' : 'LEGEND';
+  return `${tag} · VISIT NO. ${n}`;
+}
+
+function statusFor(state, rsvp, ticket) {
+  switch (state) {
+    case 'valid':
+      return { caption: 'SCAN AT THE DOOR' };
+    case 'admitted':
+      return { headline: 'CHECKED IN', aside: time24(rsvp.checked_in_at), detail: 'ENJOY THE EVENT' };
+    case 'waitlisted':
+      return { headline: 'WAITLISTED', aside: ticket?.waitlist_position ? `#${ticket.waitlist_position}` : '', detail: "WE'LL EMAIL IF A SPOT OPENS" };
+    case 'cancelled':
+      return { headline: 'CANCELLED', detail: 'THIS TICKET IS NO LONGER VALID' };
+    case 'event-cancelled':
+      return { headline: 'EVENT CANCELLED', detail: 'THE CLUB CALLED IT OFF' };
+    default:
+      return { headline: 'EVENT ENDED', detail: 'THANKS FOR COMING' };
+  }
+}
 
 export function receiptFor(data, now = Date.now()) {
   const { rsvp, event, club, ticket } = data;
-  const edition = editionFor(rsvp.rsvp_token);
-  const extra = EDITIONS[edition.key] || EDITIONS.orchid;
   const state = ticketState(data, now);
-  const [, month, day] = melDay(event.starts_at).split('-');
-  const date = new Date(event.starts_at)
-    .toLocaleDateString('en-AU', { timeZone: MEL_TZ, weekday: 'short', day: 'numeric', month: 'short' })
-    .replace(',', '')
-    .toUpperCase();
+  const admits = state === 'valid' || state === 'admitted';
 
   return {
     state,
-    edition,
-    sticker: extra.sticker,
-    club: (club?.name || '').toUpperCase(),
-    editionLine: `${edition.name.toUpperCase()} EDITION${edition.rare ? ' · RARE' : ''}`,
+    rare: !!editionFor(rsvp.rsvp_token).rare,
+    issuer: (club?.name || '').toUpperCase(),
     title: (event.title || '').toUpperCase(),
-    rows: [
-      ['DATE', date],
+    event: [
+      ['DATE', dateText(event.starts_at, now)],
       ['TIME', timeRange(event)],
-      ['WHERE', (event.location_name || '').toUpperCase()],
-      ['GUEST', (rsvp.full_name || '').toUpperCase()],
-      ['TICKET', ticketNumber(ticket?.number)],
-      ['VISIT', visitText(ticket?.club_visits)],
+      ['VENUE', (event.location_name || '').toUpperCase()],
     ].filter(([, value]) => value),
-    status: STATUS[state](rsvp, ticket),
+    address: (event.location_address || '').toUpperCase() || null,
+    guest: [
+      [admits ? 'ADMIT' : 'NAME', (rsvp.full_name || '').toUpperCase()],
+      state === 'waitlisted' ? null : ['TICKET NO.', ticket?.number ? String(ticket.number).padStart(3, '0') : null],
+      ['BOOKED', bookedText(rsvp.created_date)],
+    ].filter((row) => row && row[1]),
+    status: statusFor(state, rsvp, ticket),
     showQr: state === 'valid',
-    code: `C3 ${String(ticket?.number || 0).padStart(3, '0')} ${extra.code} ${month}${day}`,
-    bars: barcodeBars(rsvp.rsvp_token || event.id),
+    footer: state === 'valid' || state === 'admitted' || state === 'waitlisted' ? visitLine(ticket?.club_visits) : null,
   };
-}
-
-/**
- * A decorative barcode that is the same every time for the same ticket:
- * bar positions and widths as fractions of the full width.
- */
-export function barcodeBars(seed, modules = 96) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < seed.length; i++) {
-    h ^= seed.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  const random = () => {
-    h = Math.imul(h ^ (h >>> 15), 0x85ebca6b);
-    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
-    h ^= h >>> 16;
-    return (h >>> 0) / 4294967296;
-  };
-  const bars = [];
-  let x = 0;
-  let bar = true;
-  while (x < modules) {
-    const w = Math.min(1 + Math.floor(random() * (bar ? 3 : 2.5)), modules - x);
-    if (bar) bars.push({ x: x / modules, w: w / modules });
-    x += w;
-    bar = !bar;
-  }
-  return bars;
 }
